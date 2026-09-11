@@ -1,69 +1,47 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { createBrowserClient } from "@supabase/ssr";
+import type { User } from "@supabase/supabase-js";
+import FarmerTools from "./farmer-tools";
+
+type Item={id:string;item_name:string;quantity:number;unit:string;price_cents:number|null;stock_status:string};
+type Place={id:string;location_name:string;address:string;city:string;state:string;opens_at:string|null;closes_at:string|null;is_active:boolean};
+type Help={id:string;title:string;description:string|null;opportunity_date:string;volunteers_needed:number|null;is_open:boolean};
+type Farm={id:string;created_by?:string|null;name:string;slug:string;blurb:string|null;region?:string|null;base_address?:string|null;updated_at?:string;test_tier:"T1"|"T2"|null;payment_methods:string[];selling_locations:Place[];inventory_items:Item[];volunteer_opportunities:Help[]};
+type Note={id:string;comment:string;element_label:string|null;status:string;created_at:string};
+
+const demos:Farm[]=[
+ {id:"q",name:"Q's Stall",slug:"qs-stall",blurb:"Fresh neighborhood produce, grown with care and shared with clarity.",test_tier:"T1",payment_methods:["Cash","Card"],selling_locations:[{id:"ql",location_name:"Eastern Market",address:"2934 Russell St",city:"Detroit",state:"MI",opens_at:"09:00",closes_at:"14:00",is_active:true}],inventory_items:[{id:"q1",item_name:"Collard greens",quantity:18,unit:"bunch",price_cents:400,stock_status:"available"},{id:"q2",item_name:"Cherry tomatoes",quantity:7,unit:"pint",price_cents:500,stock_status:"low_stock"}],volunteer_opportunities:[{id:"qv",title:"Saturday harvest help",description:"Help wash and bundle produce for market.",opportunity_date:"2026-09-19",volunteers_needed:4,is_open:true}]},
+ {id:"o",name:"Oakland Avenue Farm",slug:"oakland-avenue",blurb:"Seasonal Detroit-grown produce and community food programs.",test_tier:"T1",payment_methods:["Cash","SNAP"],selling_locations:[{id:"ol",location_name:"North End farm stand",address:"9227 Goodwin St",city:"Detroit",state:"MI",opens_at:"10:00",closes_at:"15:00",is_active:true}],inventory_items:[{id:"o1",item_name:"Kale",quantity:24,unit:"bunch",price_cents:350,stock_status:"available"}],volunteer_opportunities:[]},
+ {id:"k",name:"Keep Growing Detroit",slug:"keep-growing-detroit",blurb:"Locally grown produce supporting a stronger food-sovereign Detroit.",test_tier:"T1",payment_methods:["Cash","Card","SNAP"],selling_locations:[{id:"kl",location_name:"Grown in Detroit market",address:"1445 Adelaide St",city:"Detroit",state:"MI",opens_at:"11:00",closes_at:"16:00",is_active:true}],inventory_items:[{id:"k1",item_name:"Sweet peppers",quantity:12,unit:"basket",price_cents:600,stock_status:"available"}],volunteer_opportunities:[]},
+ {id:"d",name:"D-Town Farm",slug:"d-town",blurb:"Community-rooted growing in Detroit's Rouge Park.",test_tier:"T2",payment_methods:["Cash"],selling_locations:[{id:"dl",location_name:"Rouge Park",address:"14027 Outer Dr W",city:"Detroit",state:"MI",opens_at:"10:00",closes_at:"14:00",is_active:true}],inventory_items:[{id:"d1",item_name:"Summer squash",quantity:0,unit:"each",price_cents:250,stock_status:"coming_soon"}],volunteer_opportunities:[]},
+ {id:"g",name:"Georgia Street Community Collective",slug:"georgia-street",blurb:"Community-grown food and neighborhood connection on Detroit's east side.",test_tier:"T2",payment_methods:["Cash"],selling_locations:[{id:"gl",location_name:"Georgia Street",address:"8902 Vinton Ave",city:"Detroit",state:"MI",opens_at:"12:00",closes_at:"16:00",is_active:true}],inventory_items:[{id:"g1",item_name:"Herbs",quantity:15,unit:"bundle",price_cents:300,stock_status:"available"}],volunteer_opportunities:[]}
+];
+const url=process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const db=url&&key?createBrowserClient(url,key):null;
+const cash=(n:number|null)=>n==null?"Ask farmer":new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(n/100);
+const clock=(v:string|null)=>{if(!v)return"";const[h,m]=v.split(":").map(Number);return`${h%12||12}:${String(m).padStart(2,"0")} ${h>=12?"PM":"AM"}`};
+
+export default function Home(){
+ const[farms,setFarms]=useState<Farm[]>(demos),[open,setOpen]=useState<Farm|null>(null),[tab,setTab]=useState<"find"|"farmer"|"feedback">("find"),[filter,setFilter]=useState("all"),[search,setSearch]=useState(""),[region,setRegion]=useState("all");
+ const[user,setUser]=useState<User|null>(null),[email,setEmail]=useState(""),[notice,setNotice]=useState(""),[notes,setNotes]=useState<Note[]>([]),[comment,setComment]=useState(""),[element,setElement]=useState("Discovery page");
+ const load=async()=>{if(!db)return;const{data}=await db.from("farms").select("*,selling_locations(*),inventory_items(*),volunteer_opportunities(*)").order("name");if(data?.length)setFarms(data as Farm[])};
+ const loadNotes=async()=>{if(!db||!user)return;const{data}=await db.from("feedback").select("id,comment,element_label,status,created_at").order("created_at",{ascending:false});setNotes((data??[])as Note[])};
+ useEffect(()=>{load();if(!db)return;db.auth.getUser().then(({data})=>setUser(data.user));const{data}=db.auth.onAuthStateChange((_e,s)=>setUser(s?.user??null));return()=>data.subscription.unsubscribe()},[]);
+ useEffect(()=>{loadNotes()},[user]);
+ const shown=useMemo(()=>farms.filter(f=>{const term=search.trim().toLowerCase();return(!term||f.name.toLowerCase().includes(term)||f.inventory_items.some(i=>i.item_name.toLowerCase().includes(term)&&["available","low_stock"].includes(i.stock_status)))&&(region==="all"||f.region===region)&&(filter==="all"||(filter==="stock"?f.inventory_items.some(i=>["available","low_stock"].includes(i.stock_status)):f.volunteer_opportunities.some(v=>v.is_open)))}),[farms,filter,search,region]);
+ const signIn=async(e:FormEvent)=>{e.preventDefault();if(!db)return setNotice("Supabase is not configured.");const{error}=await db.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin}});setNotice(error?.message??"Check your email for a secure sign-in link.")};
+ const saveNote=async(e:FormEvent)=>{e.preventDefault();if(!db||!user)return setNotice("Sign in before leaving persistent feedback.");const{error}=await db.from("feedback").insert({author_id:user.id,page_path:`/${tab}`,element_label:element,element_key:element.toLowerCase().replaceAll(" ","-"),comment,viewport_width:innerWidth,viewport_height:innerHeight});if(error)return setNotice(error.message);setComment("");setNotice("Feedback saved.");loadNotes()};
+ const removeNote=async(id:string)=>{if(!db)return;await db.from("feedback").delete().eq("id",id);loadNotes()};
+ const addFarm=async(e:FormEvent<HTMLFormElement>)=>{e.preventDefault();if(!db||!user)return setNotice("Sign in before adding a vendor.");const f=new FormData(e.currentTarget),name=String(f.get("name")??"").trim();const{error}=await db.from("farms").insert({created_by:user.id,name,slug:`${name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"")}-${Date.now().toString().slice(-5)}`,blurb:f.get("blurb"),base_address:f.get("address"),test_tier:f.get("tier"),is_published:true});if(error)return setNotice(error.message);e.currentTarget.reset();setNotice("Vendor added.");load()};
+ return <main><header><button className="brand" onClick={()=>setTab("find")}><b>DR</b><span>Detroit Root Network<small>Fresh food, clearly connected</small></span></button><nav><button className={tab==="find"?"on":""} onClick={()=>setTab("find")}>Find food</button><button className={tab==="farmer"?"on":""} onClick={()=>setTab("farmer")}>Farmer tools</button><button className={tab==="feedback"?"on":""} onClick={()=>setTab("feedback")}>Director Q</button></nav></header>
+ {notice&&<div className="notice">{notice}<button onClick={()=>setNotice("")}>×</button></div>}
+ {tab==="find"&&<div className="findtools"><label>Search farms or available produce<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Try tomatoes, greens, or a farm name"/></label><label>Region<select value={region} onChange={e=>setRegion(e.target.value)}><option value="all">All Detroit regions</option>{["Downtown","Midtown","North End/New Center","West","Southwest","East"].map(r=><option key={r}>{r}</option>)}</select></label></div>}
+ {tab==="find"&&<section className="shell"><div className="intro"><div><p className="eyebrow">OPEN AROUND DETROIT</p><h1>Find fresh food near you</h1><p>See what local farms have, where they are selling, and when to visit.</p></div><div className="filters">{[["all","All farms"],["stock","In stock"],["help","Volunteer"]].map(([v,l])=><button className={filter===v?"on":""} key={v} onClick={()=>setFilter(v)}>{l}</button>)}</div></div><div className="grid"><div className="cards">{shown.map((f,n)=>{const p=f.selling_locations[0],stock=f.inventory_items.filter(i=>["available","low_stock"].includes(i.stock_status));return<button className="card" key={f.id} onClick={()=>setOpen(f)}><div className="row"><span className="tag">{f.test_tier??"LIVE"}</span><span className="status">● {p?"Selling today":"Schedule pending"}</span></div><h2>{f.name}</h2><p>{f.blurb}</p>{p&&<div className="place"><b>{p.location_name}</b><span>{p.address} · {clock(p.opens_at)}–{clock(p.closes_at)}</span></div>}<div className="chips">{stock.slice(0,3).map(i=><span key={i.id}>{i.item_name} <b>{cash(i.price_cents)}</b></span>)}</div><footer><span>{f.payment_methods.join(" · ")||"Payment details pending"}</span><b>View details →</b></footer></button>})}</div><aside className="map"><div className="mapkey"><b>{shown.length} places shown</b><span>Tap a numbered marker</span></div>{shown.map((f,n)=><button key={f.id} className="pin" style={{left:`${18+(n*17)%68}%`,top:`${25+(n*23)%55}%`}} onClick={()=>setOpen(f)}>{n+1}</button>)}<i>Detroit River</i></aside></div></section>}
+ {tab==="farmer"&&<Workspace title="Keep today’s information accurate" sub="Designed for fast updates during busy market hours.">{!user?<Login {...{email,setEmail,signIn}}/>:<FarmerTools db={db} user={user} farms={farms} reload={load} setNotice={setNotice}/>}</Workspace>}
+ {tab==="feedback"&&<Workspace title="Product feedback, kept with the product" sub="Leave context-rich notes here; exports are now optional backups.">{!user?<Login {...{email,setEmail,signIn}}/>:<div className="twocol"><form className="panel form" onSubmit={saveNote}><h2>Leave page feedback</h2><label>Page or element<select value={element} onChange={e=>setElement(e.target.value)}>{["Discovery page","Vendor card","Map","Farmer inventory","Volunteer form","Mobile layout"].map(x=><option key={x}>{x}</option>)}</select></label><label>Comment<textarea required maxLength={3000} value={comment} onChange={e=>setComment(e.target.value)}/><small>{comment.length}/3000</small></label><button className="primary">Save feedback</button></form><div className="panel"><div className="row"><h2>Feedback tally</h2><b>{notes.length} total</b></div><div className="notes">{notes.length?notes.map(n=><article key={n.id}><div className="row"><span className="tag">{n.status.replaceAll("_"," ")}</span><small>{n.element_label}</small></div><p>{n.comment}</p><footer><time>{new Date(n.created_at).toLocaleDateString()}</time><button onClick={()=>removeNote(n.id)}>Remove</button></footer></article>):<p>No saved feedback yet.</p>}</div></div></div>}</Workspace>}
+ {open&&<div className="overlay" onMouseDown={()=>setOpen(null)}><section className="detail" role="dialog" aria-modal="true" onMouseDown={e=>e.stopPropagation()}><button className="close" onClick={()=>setOpen(null)}>×</button><span className="tag">{open.test_tier}</span><h2>{open.name}</h2><p>{open.blurb}</p>{open.selling_locations.map(p=><div className="block" key={p.id}><h3>Where to find them</h3><b>{p.location_name}</b><p>{p.address}, {p.city}, {p.state}<br/>{clock(p.opens_at)}–{clock(p.closes_at)}</p><a className="primary" target="_blank" rel="noreferrer" href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(`${p.address}, ${p.city}, ${p.state}`)}`}>Open in Maps</a></div>)}<div className="block"><h3>Available produce</h3>{open.inventory_items.map(i=><div className="item" key={i.id}><span><b>{i.item_name}</b><small>{i.quantity} {i.unit} · {i.stock_status.replaceAll("_"," ")}</small></span><b>{cash(i.price_cents)}</b></div>)}</div>{open.volunteer_opportunities.map(v=><div className="block" key={v.id}><h3>Volunteer opportunity</h3><b>{v.title}</b><p>{v.description}<br/><small>{v.opportunity_date} · {v.volunteers_needed} volunteers needed</small></p></div>)}</section></div>}</main>
 }
+function Workspace({title,sub,children}:{title:string;sub:string;children:React.ReactNode}){return<section className="shell workspace"><div className="intro"><div><p className="eyebrow">OPERATIONS WORKSPACE</p><h1>{title}</h1><p>{sub}</p></div></div>{children}</section>}
+function Login({email,setEmail,signIn}:{email:string;setEmail:(x:string)=>void;signIn:(e:FormEvent)=>void}){return<form className="panel login" onSubmit={signIn}><h2>Sign in to continue</h2><p>Use a secure email link—no password to remember.</p><label>Email address<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required/></label><button className="primary">Email me a sign-in link</button></form>}
