@@ -804,6 +804,13 @@ h1 {
   font-family: Arial, sans-serif;
   color: var(--ink);
 }
+.detail .block > .primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px 0 10px;
+  line-height: 1.2;
+}
 @media (max-width: 850px) {
   .map-shell {
     height: 360px;
@@ -818,5 +825,9 @@ h1 {
   }
   .map-shell .mapkey {
     left: 48px;
+  }
+  .detail .block > .primary {
+    width: 100%;
+    margin-bottom: 14px;
   }
 }
