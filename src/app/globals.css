@@ -564,14 +564,30 @@ h1 {
 
 .findtools {
   width: min(1180px, calc(100% - 36px));
-  margin: 24px auto -22px;
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 12px;
+  margin: 18px auto -26px;
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--paper);
+  box-shadow: 0 6px 18px #173e350a;
 }
 .findtools label {
+  flex: 1;
   font-size: 0.78rem;
   font-weight: 800;
+}
+.findtools label:last-child {
+  flex: 0 0 225px;
+}
+.findtools label > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
 }
 .findtools input,
 .findtools select,
@@ -580,11 +596,11 @@ h1 {
 .inlineform select {
   display: block;
   width: 100%;
-  margin-top: 6px;
-  border: 1px solid #bac7bf;
-  background: white;
-  border-radius: 10px;
-  padding: 11px;
+  margin-top: 0;
+  border: 0;
+  background: #f3f6f2;
+  border-radius: 9px;
+  padding: 10px 12px;
   color: var(--ink);
 }
 .farmer-wrap {
@@ -717,8 +733,10 @@ h1 {
 @media (max-width: 850px) {
   .findtools {
     width: calc(100% - 28px);
-    grid-template-columns: 1fr;
-    margin-bottom: -12px;
+    margin: 12px auto -10px;
+  }
+  .findtools label:last-child {
+    flex-basis: 42%;
   }
   .workspacebar {
     align-items: stretch;
@@ -736,6 +754,15 @@ h1 {
   }
   .stockactions {
     flex-shrink: 0;
+  }
+}
+@media (max-width: 520px) {
+  .findtools {
+    flex-wrap: wrap;
+  }
+  .findtools label,
+  .findtools label:last-child {
+    flex: 1 1 100%;
   }
 }
 @media (max-width: 520px) {
@@ -810,6 +837,60 @@ h1 {
   justify-content: center;
   margin: 4px 0 10px;
   line-height: 1.2;
+}
+.detail-head {
+  padding: 2px 48px 4px 0;
+}
+.detail-head h2 {
+  margin: 12px 0 8px;
+}
+.detail-head p {
+  max-width: 48ch;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.detail .block {
+  padding-top: 20px;
+  margin-top: 20px;
+}
+.detail .block h3 {
+  margin: 0 0 12px;
+}
+.location-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.location-copy {
+  margin: 7px 0 12px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.now-badge,
+.schedule-badge {
+  flex-shrink: 0;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+.now-badge {
+  background: var(--mint);
+  color: var(--green);
+}
+.schedule-badge {
+  background: #eceeea;
+  color: var(--muted);
+}
+.detail .item {
+  align-items: center;
+  gap: 18px;
+  padding: 12px 0;
+}
+.detail .item:last-child {
+  border-bottom: 0;
 }
 @media (max-width: 850px) {
   .map-shell {

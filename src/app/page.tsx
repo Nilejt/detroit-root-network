@@ -20,6 +20,7 @@ type Place = {
   address: string;
   city: string;
   state: string;
+  selling_date?: string | null;
   opens_at: string | null;
   closes_at: string | null;
   is_active: boolean;
@@ -247,6 +248,37 @@ const clock = (v: string | null) => {
   const [h, m] = v.split(":").map(Number);
   return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 };
+const detroitTime = (date: Date) => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Detroit",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "00";
+  return {
+    date: `${value("year")}-${value("month")}-${value("day")}`,
+    minutes: Number(value("hour")) * 60 + Number(value("minute")),
+  };
+};
+const isSellingNow = (place: Place, date: Date) => {
+  if (!place.is_active || !place.opens_at || !place.closes_at) return false;
+  const now = detroitTime(date);
+  if (place.selling_date && place.selling_date !== now.date) return false;
+  const minutes = (time: string) => {
+    const [hour, minute] = time.split(":").map(Number);
+    return hour * 60 + minute;
+  };
+  const opens = minutes(place.opens_at);
+  const closes = minutes(place.closes_at);
+  return closes >= opens
+    ? now.minutes >= opens && now.minutes <= closes
+    : now.minutes >= opens || now.minutes <= closes;
+};
 
 export default function Home() {
   const [farms, setFarms] = useState<Farm[]>(demos),
@@ -254,7 +286,8 @@ export default function Home() {
     [tab, setTab] = useState<"find" | "farmer" | "feedback">("find"),
     [filter, setFilter] = useState("all"),
     [search, setSearch] = useState(""),
-    [region, setRegion] = useState("all");
+    [region, setRegion] = useState("all"),
+    [now, setNow] = useState(() => new Date());
   const [user, setUser] = useState<User | null>(null),
     [email, setEmail] = useState(""),
     [notice, setNotice] = useState(""),
@@ -291,6 +324,10 @@ export default function Home() {
   useEffect(() => {
     loadNotes();
   }, [user]);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
   const shown = useMemo(
     () =>
       farms.filter((f) => {
@@ -305,14 +342,17 @@ export default function Home() {
             )) &&
           (region === "all" || f.region === region) &&
           (filter === "all" ||
-            (filter === "stock"
-              ? f.inventory_items.some((i) =>
-                  ["available", "low_stock"].includes(i.stock_status),
-                )
-              : f.volunteer_opportunities.some((v) => v.is_open)))
+            (filter === "stock" &&
+              f.inventory_items.some((i) =>
+                ["available", "low_stock"].includes(i.stock_status),
+              )) ||
+            (filter === "selling" &&
+              f.selling_locations.some((place) => isSellingNow(place, now))) ||
+            (filter === "help" &&
+              f.volunteer_opportunities.some((v) => v.is_open)))
         );
       }),
-    [farms, filter, search, region],
+    [farms, filter, search, region, now],
   );
   const signIn = async (e: FormEvent) => {
     e.preventDefault();
@@ -431,7 +471,7 @@ export default function Home() {
       {tab === "find" && (
         <div className="findtools">
           <label>
-            Search farms or available produce
+            <span>Search</span>
             <input
               type="search"
               value={search}
@@ -440,7 +480,7 @@ export default function Home() {
             />
           </label>
           <label>
-            Region
+            <span>Region</span>
             <select value={region} onChange={(e) => setRegion(e.target.value)}>
               <option value="all">All Detroit regions</option>
               {[
@@ -471,6 +511,7 @@ export default function Home() {
             <div className="filters">
               {[
                 ["all", "All farms"],
+                ["selling", "Selling now"],
                 ["stock", "In stock"],
                 ["help", "Volunteer"],
               ].map(([v, l]) => (
@@ -488,6 +529,9 @@ export default function Home() {
             <div className="cards">
               {shown.map((f, n) => {
                 const p = f.selling_locations[0],
+                  selling = f.selling_locations.some((place) =>
+                    isSellingNow(place, now),
+                  ),
                   stock = f.inventory_items.filter((i) =>
                     ["available", "low_stock"].includes(i.stock_status),
                   );
@@ -500,7 +544,12 @@ export default function Home() {
                     <div className="row">
                       <span className="tag">{f.test_tier ?? "LIVE"}</span>
                       <span className="status">
-                        ● {p ? "Selling today" : "Schedule pending"}
+                        ●{" "}
+                        {selling
+                          ? "Selling now"
+                          : p
+                            ? "Scheduled"
+                            : "Schedule pending"}
                       </span>
                     </div>
                     <h2>{f.name}</h2>
@@ -651,14 +700,25 @@ export default function Home() {
             <button className="close" onClick={() => setOpen(null)}>
               ×
             </button>
-            <span className="tag">{open.test_tier}</span>
-            <h2>{open.name}</h2>
-            <p>{open.blurb}</p>
+            <div className="detail-head">
+              <span className="tag">{open.test_tier}</span>
+              <h2>{open.name}</h2>
+              <p>{open.blurb}</p>
+            </div>
             {open.selling_locations.map((p) => (
               <div className="block" key={p.id}>
                 <h3>Where to find them</h3>
-                <b>{p.location_name}</b>
-                <p>
+                <div className="location-title">
+                  <b>{p.location_name}</b>
+                  <span
+                    className={
+                      isSellingNow(p, now) ? "now-badge" : "schedule-badge"
+                    }
+                  >
+                    {isSellingNow(p, now) ? "Selling now" : "Scheduled"}
+                  </span>
+                </div>
+                <p className="location-copy">
                   {p.address}, {p.city}, {p.state}
                   <br />
                   {clock(p.opens_at)}–{clock(p.closes_at)}
