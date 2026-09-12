@@ -606,17 +606,32 @@ export default function FarmerTools({
           ))}
         </div>
         <form className="inlineform volunteerform" onSubmit={addHelp}>
-          <input name="title" placeholder="Opportunity title" required />
-          <input type="date" name="date" required />
-          <input type="time" name="starts_at" aria-label="Starts at" />
-          <input type="time" name="ends_at" aria-label="Ends at" />
-          <input
-            type="number"
-            name="needed"
-            min="1"
-            placeholder="People needed"
-            required
-          />
+          <label className="volunteer-field volunteer-title">
+            <span>Opportunity title</span>
+            <input name="title" placeholder="Saturday harvest help" required />
+          </label>
+          <label className="volunteer-field volunteer-date">
+            <span>Date</span>
+            <input type="date" name="date" required />
+          </label>
+          <label className="volunteer-field volunteer-start">
+            <span>Starts</span>
+            <input type="time" name="starts_at" />
+          </label>
+          <label className="volunteer-field volunteer-end">
+            <span>Ends</span>
+            <input type="time" name="ends_at" />
+          </label>
+          <label className="volunteer-field volunteer-needed">
+            <span>People needed</span>
+            <input
+              type="number"
+              name="needed"
+              min="1"
+              placeholder="4"
+              required
+            />
+          </label>
           <label className="help-description">
             <span>Type of help needed</span>
             <textarea
@@ -627,7 +642,9 @@ export default function FarmerTools({
             />
             <small>Up to 500 characters</small>
           </label>
-          <button className="primary form-submit">Post opportunity</button>
+          <button className="primary form-submit volunteer-submit">
+            Post opportunity
+          </button>
         </form>
       </section>
     </div>

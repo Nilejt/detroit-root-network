@@ -732,14 +732,34 @@ h1 {
   align-self: center;
 }
 .volunteerform {
-  grid-template-columns: 1.5fr repeat(4, 1fr) minmax(230px, 2fr) auto;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 14px 12px;
 }
+.volunteer-field,
 .help-description {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 7px;
+  min-width: 0;
   font-size: 0.78rem;
   font-weight: 800;
+}
+.volunteer-title {
+  grid-column: span 4;
+}
+.volunteer-date {
+  grid-column: span 2;
+}
+.volunteer-start,
+.volunteer-end {
+  grid-column: span 2;
+}
+.volunteer-needed {
+  grid-column: span 2;
+}
+.help-description {
+  grid-column: 1 / span 9;
 }
 .help-description small {
   font-weight: 400;
@@ -752,6 +772,13 @@ h1 {
   justify-content: center;
   white-space: nowrap;
   align-self: end;
+}
+.volunteer-submit {
+  grid-column: 10 / -1;
+  align-self: stretch;
+  width: 100%;
+  min-width: 170px;
+  min-height: 96px;
 }
 .quiet {
   border: 1px solid #afbbb5;
@@ -783,6 +810,17 @@ h1 {
   .volunteerform {
     grid-template-columns: 1fr 1fr;
   }
+  .volunteerform > * {
+    grid-column: auto;
+  }
+  .volunteer-title,
+  .help-description,
+  .volunteer-submit {
+    grid-column: 1 / -1;
+  }
+  .volunteer-submit {
+    min-height: 48px;
+  }
   .stockactions {
     flex-shrink: 0;
   }
@@ -801,6 +839,9 @@ h1 {
   .inlineform,
   .volunteerform {
     grid-template-columns: 1fr;
+  }
+  .volunteerform > * {
+    grid-column: 1;
   }
   .stocklist article {
     align-items: flex-start;
