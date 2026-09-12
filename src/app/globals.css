@@ -713,14 +713,45 @@ h1 {
   margin-top: 16px;
 }
 .inlineform input,
-.inlineform select {
+.inlineform select,
+.inlineform textarea {
   margin: 0;
+}
+.inlineform textarea {
+  display: block;
+  width: 100%;
+  resize: vertical;
+  min-height: 96px;
+  border: 0;
+  background: #f3f6f2;
+  border-radius: 9px;
+  padding: 10px 12px;
+  color: var(--ink);
 }
 .inlineform b {
   align-self: center;
 }
 .volunteerform {
-  grid-template-columns: 1.5fr repeat(4, 1fr) 2fr auto;
+  grid-template-columns: 1.5fr repeat(4, 1fr) minmax(230px, 2fr) auto;
+}
+.help-description {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+.help-description small {
+  font-weight: 400;
+  color: var(--muted);
+}
+.form-submit {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  align-self: end;
 }
 .quiet {
   border: 1px solid #afbbb5;

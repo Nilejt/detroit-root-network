@@ -119,6 +119,22 @@ const produce = [
   "Winter squash",
   "Zucchini",
 ];
+const quantities = [
+  0.5,
+  ...Array.from({ length: 100 }, (_, index) => index + 1),
+];
+const units = [
+  "each",
+  "bunch",
+  "bundle",
+  "pound",
+  "pint",
+  "quart",
+  "bag",
+  "basket",
+  "dozen",
+  "box",
+];
 
 export default function FarmerTools({
   db,
@@ -230,7 +246,7 @@ export default function FarmerTools({
     setNotice(error?.message ?? "Produce added.");
     if (!error) {
       e.currentTarget.reset();
-      reload();
+      await reload();
     }
   }
   async function saveItem(e: FormEvent<HTMLFormElement>) {
@@ -466,21 +482,30 @@ export default function FarmerTools({
         {editing && (
           <form className="inlineform" onSubmit={saveItem}>
             <b>Edit {editing.item_name}</b>
-            <input
-              type="number"
+            <select
               name="quantity"
-              min="0"
-              step="0.01"
               defaultValue={editing.quantity}
               required
               aria-label="Quantity"
-            />
-            <input
+            >
+              {quantities.map((quantity) => (
+                <option key={quantity} value={quantity}>
+                  {quantity}
+                </option>
+              ))}
+            </select>
+            <select
               name="unit"
               defaultValue={editing.unit}
               required
               aria-label="Unit"
-            />
+            >
+              {units.map((unit) => (
+                <option key={unit} value={unit}>
+                  {unit}
+                </option>
+              ))}
+            </select>
             <input
               type="number"
               name="price"
@@ -523,15 +548,31 @@ export default function FarmerTools({
               <option key={p} value={p} />
             ))}
           </datalist>
-          <input
-            type="number"
+          <select
             name="quantity"
-            min="0"
-            step="0.01"
-            placeholder="Quantity"
+            defaultValue=""
             required
-          />
-          <input name="unit" placeholder="Unit" required />
+            aria-label="Quantity"
+          >
+            <option value="" disabled>
+              Quantity
+            </option>
+            {quantities.map((quantity) => (
+              <option key={quantity} value={quantity}>
+                {quantity}
+              </option>
+            ))}
+          </select>
+          <select name="unit" defaultValue="" required aria-label="Unit">
+            <option value="" disabled>
+              Unit
+            </option>
+            {units.map((unit) => (
+              <option key={unit} value={unit}>
+                {unit}
+              </option>
+            ))}
+          </select>
           <input
             type="number"
             name="price"
@@ -540,7 +581,7 @@ export default function FarmerTools({
             placeholder="Price"
             required
           />
-          <button className="primary">Add</button>
+          <button className="primary form-submit">Add produce</button>
         </form>
       </section>
       <section className="panel stock">
@@ -576,8 +617,17 @@ export default function FarmerTools({
             placeholder="People needed"
             required
           />
-          <input name="description" placeholder="Type of help needed" />
-          <button className="primary">Post opportunity</button>
+          <label className="help-description">
+            <span>Type of help needed</span>
+            <textarea
+              name="description"
+              placeholder="Describe the work, what volunteers should bring, and any accessibility details."
+              maxLength={500}
+              rows={4}
+            />
+            <small>Up to 500 characters</small>
+          </label>
+          <button className="primary form-submit">Post opportunity</button>
         </form>
       </section>
     </div>
