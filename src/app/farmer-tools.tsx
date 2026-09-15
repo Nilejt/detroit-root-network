@@ -249,7 +249,7 @@ export default function FarmerTools({
   }
   async function saveItem(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!db || !editing) return;
+    if (!db || !editing || !farm?.inventory_items.some((item) => item.id === editing.id)) return;
     const f = new FormData(e.currentTarget),
       quantity = Number(f.get("quantity"));
     const { error } = await db
@@ -322,7 +322,7 @@ export default function FarmerTools({
       </div>
     );
   return (
-    <div className="farmer-wrap">
+    <div className="farmer-wrap" key={activeId}>
       <div className="workspacebar">
         <div>
           <span className="tag">{role.replaceAll("_", " ")}</span>
@@ -333,7 +333,10 @@ export default function FarmerTools({
             Editable T1 farm
             <select
               value={activeId}
-              onChange={(e) => setSelectedId(e.target.value)}
+              onChange={(e) => {
+                setSelectedId(e.target.value);
+                setEditing(null);
+              }}
             >
               {choices.map((f) => (
                 <option value={f.id} key={f.id}>
@@ -477,8 +480,8 @@ export default function FarmerTools({
             </article>
           ))}
         </div>
-        {editing && (
-          <form className="inlineform" onSubmit={saveItem}>
+        {editing && farm.inventory_items.some((item) => item.id === editing.id) && (
+          <form key={editing.id} className="inlineform" onSubmit={saveItem}>
             <b>Edit {editing.item_name}</b>
             <select
               name="quantity"
