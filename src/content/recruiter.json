@@ -1,0 +1,58 @@
+{
+  "title": "Detroit Root Network",
+  "subtitle": "An agentic development case study for Detroit",
+  "summary": "A deployed community food discovery and farm operations beta that connects local availability, selling locations, inventory updates, and volunteer opportunities in one application.",
+  "pitch": "Detroit Root Network starts with a practical question: where can someone find locally grown food, and is the information current enough to act on? We built a shared discovery experience and a simple operations workspace so growers can maintain the information customers need. The project demonstrates how product leadership, technical business analysis, program management, and UX research can guide AI-assisted development from requirements through a working cloud deployment. The next step is a controlled farmer pilot to measure whether the workflows improve information freshness and ease of use.",
+  "people": [
+    {"name":"Nile", "role":"Senior Project Manager and Technical Business Analyst", "contribution":"Led product scope and acceptance decisions, translated operational needs into requirements, directed AI-assisted implementation, and configured and validated the deployment across GitHub, Vercel, and Supabase."},
+    {"name":"Quinn", "role":"Technical Program Manager and UX Researcher", "contribution":"Brings program coordination and UX research to the project. The Director Q workspace supports cross-farm review, contextual feedback, and planned testing with farmers in her network."}
+  ],
+  "capabilities": [
+    {"title":"Food discovery", "body":"Search farms and produce, filter by Detroit region, in-stock items, selling now, and volunteer opportunities, and open detailed stall cards from the list or map."},
+    {"title":"Farm operations", "body":"Update farm details and selling schedules, add or edit inventory, select standardized units, adjust quantity and price, and mark produce sold out."},
+    {"title":"Volunteer coordination", "body":"Publish opportunities with a description, date, and volunteer count. Mobile form refinements include persistent labels, wider fields, aligned controls, and a 500-character description limit."},
+    {"title":"Product feedback", "body":"Capture page and element context with feedback, review saved notes, and export CSV backups for product review."}
+  ],
+  "stack": [
+    ["Application", "Next.js 16 and React 19", "App Router pages and server route handlers connect a responsive browser experience to authentication services."],
+    ["Implementation", "TypeScript and CSS", "Typed data models and responsive styling support discovery, operations, and feedback workflows. Tailwind 4 is included in the styling toolchain."],
+    ["Data and identity", "Supabase PostgreSQL and Auth", "Persistent relational records, email magic links, authenticated sessions, profile roles, farm memberships, and database access policies."],
+    ["Authorization", "Row Level Security and SQL triggers", "Database policies govern access. T2 fixture protection checks both old and new records, including tier changes and child-record moves."],
+    ["Maps", "Leaflet and OpenStreetMap", "Interactive Detroit map with clickable, seeded farm markers. Current markers use predefined coordinates rather than automatic geocoding."],
+    ["Delivery", "GitHub and Vercel", "PowerShell build and Git workflow, automatic deployment from main, environment-scoped configuration, and firewall rules."],
+    ["Quality and recovery", "ESLint, TypeScript, Node tests, PostgreSQL tools", "Production builds, focused authentication tests, and a database backup whose archive contents were checked before migration."]
+  ],
+  "flows": [
+    {"title":"Discovery to action", "steps":["A visitor filters farms or selects a map marker.","The app displays produce, selling details, payment methods, and volunteer information.","The visitor can open directions or use the posted information to plan a visit."]},
+    {"title":"Authorized operations", "steps":["A user authenticates through Supabase.","The application loads the profile role and farm memberships.","Browser writes use the public Supabase client with the user's session; RLS and triggers enforce access.","The interface reloads affected data after confirmed changes."]},
+    {"title":"Release to production", "steps":["Requirements and acceptance criteria guide a scoped change.","Lint, authentication tests, and the production build run locally.","Selected files are committed and pushed to GitHub main.","Vercel builds the deployment; environment changes require redeployment.","The team validates the live workflow and permissions."]}
+  ],
+  "configuration": [
+    ["Supabase", "Confirmed existing identities; applied migration 005; verified Owner and Director Q profile roles; configured production Site URL and the email callback redirect. Q's Stall membership and cross-T1 policies are included in the migration."],
+    ["Vercel", "Configured public Supabase connection values and private server variables; enabled a temporary beta-login kill switch; published a firewall rate-limit rule before enabling code access."],
+    ["GitHub and PowerShell", "Used the existing repository and main branch; staged specific deployment files; ran validation and pushed commit 8175d66 for the beta-authentication release."],
+    ["Database recovery", "Installed PostgreSQL command-line tools, created a database archive through the session pooler, and successfully listed the archive before applying the migration. A full restore rehearsal remains a next step."]
+  ],
+  "decisions": [
+    {"title":"Roles are enforced in the database", "body":"Owner and Director Q can work across T1 stalls, while farmers use membership-based access. A hidden button is not treated as an authorization control."},
+    {"title":"Editable trials and discovery fixtures are separated", "body":"T1 stalls support operational testing. T2 stalls populate discovery without permitting app users to modify those records, even by changing tiers or moving child records."},
+    {"title":"Temporary convenience has an exit requirement", "body":"Owner and Director Q beta codes are validated on the server and exchanged for normal Supabase sessions. Codes remain private configuration, and the entire code-login pathway must be removed before a larger demo."},
+    {"title":"Human judgment directs agentic development", "body":"AI tools helped produce and revise implementation, tests, SQL, and deployment instructions. The project team set the scope, evaluated the experience, configured services, and accepted or corrected the results."}
+  ],
+  "evidence": [
+    ["Deployed beta", "Vercel deployment reached Ready, and the project owner reported successful beta-code login and satisfactory access checks."],
+    ["Automated checks", "The beta-authentication release passed lint, a production build, and eight route tests covering failed and successful authentication boundaries. These tests mock Supabase; they are not a complete live RLS audit."],
+    ["Database configuration", "Migration 005 completed successfully. Owner and Director Q roles were confirmed in the profiles table."],
+    ["Email authentication", "The production Site URL and callback allowlist were corrected after a failed return and email rate-limit error. A successful post-correction email sign-in still needs confirmation."],
+    ["Pilot readiness", "A pilot of up to 15 farmers is planned. No adoption, revenue, yield, or food-access impact metrics are claimed yet."]
+  ],
+  "next": [
+    "Confirm farmer email login and configure email delivery suitable for the pilot.",
+    "Run live direct-API permission tests for unrelated T1 access, T2 mutation attempts, and role escalation.",
+    "Remove temporary Owner and Director Q code login before the larger demo; revoke beta sessions and retire older deployments.",
+    "Observe an initial farmer cohort and measure onboarding completion, time to first inventory update, task completion, and information freshness.",
+    "Add guided farmer onboarding and address geocoding; review map-service capacity and rehearse database restoration."
+  ],
+  "demo": ["Start with the public discovery page and filter for available produce.","Open a stall card and its mapped location.","Have an authorized presenter demonstrate a T1 inventory update and the refreshed listing.","Show T2 read-only behavior and explain the database boundary.","Capture contextual feedback and close with the pilot evaluation plan."],
+  "recruiterSummary": "This project demonstrates senior delivery leadership across product definition, technical requirements, role design, cloud configuration, release validation, operational recovery, and an evolving user experience. Its strongest evidence is a working integration and documented decisions; community impact is the next hypothesis to validate."
+}
