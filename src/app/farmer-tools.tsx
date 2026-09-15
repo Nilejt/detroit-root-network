@@ -585,7 +585,7 @@ export default function FarmerTools({
           <button className="primary form-submit">Add produce</button>
         </form>
       </section>
-      <section className="panel stock">
+      <section className="panel stock volunteer-panel">
         <h2>Volunteer opportunities</h2>
         <div className="stocklist">
           {farm.volunteer_opportunities.map((v) => (

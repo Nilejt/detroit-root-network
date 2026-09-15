@@ -1,15 +1,18 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 :root {
-  --ink: #173e35;
-  --deep: #0d2d26;
-  --green: #1f6b55;
-  --mint: #dcece5;
-  --cream: #f6f2e8;
+  /* DRN palette: green carries identity; neutral surfaces keep content distinct. */
+  --ink: #233f2e;
+  --deep: #254f38;
+  --green: #315e40;
+  --mint: #e8eddf;
+  --cream: #f5f1e9;
   --paper: #fffdf8;
-  --bronze: #b66b38;
-  --line: #d8ddd5;
-  --muted: #60736c;
+  --bronze: #8a512e;
+  --line: #d9d5c9;
+  --muted: #596451;
+  --sand: #eee8da;
+  --clay: #f1e2d6;
 }
 * {
   box-sizing: border-box;
@@ -74,8 +77,14 @@ header {
 nav {
   display: flex;
   gap: 6px;
+  flex-wrap: wrap;
+  background: var(--paper);
+  border-radius: 24px;
+  padding: 5px;
+  color: var(--ink);
 }
 nav button,
+nav a,
 .filters button {
   border: 0;
   background: transparent;
@@ -85,11 +94,12 @@ nav button,
   font-weight: 700;
 }
 nav button {
-  color: #cfe1da;
+  color: var(--ink);
 }
+nav a { color: var(--ink); text-decoration: none; }
 nav button.on {
-  background: #ffffff18;
-  color: white;
+  background: var(--mint);
+  color: var(--ink);
 }
 .shell {
   width: min(1180px, calc(100% - 36px));
@@ -130,6 +140,7 @@ h1 {
 }
 .filters {
   display: flex;
+  flex-wrap: wrap;
   gap: 5px;
   padding: 5px;
   border: 1px solid var(--line);
@@ -151,6 +162,7 @@ h1 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
+.grid > *, .cards > *, .findtools > * { min-width: 0; }
 .card {
   border: 1px solid var(--line);
   background: var(--paper);
@@ -168,6 +180,11 @@ h1 {
   transform: translateY(-3px);
   border-color: #91ad9f;
 }
+.card:nth-child(even) { background: #f7f0e5; }
+.card .place { margin-top: 10px; }
+.card .produce-label { margin: 16px 0 0; font-size: .8rem; font-weight: 700; }
+.card .chips { margin-top: 8px; }
+.card .availability-empty { margin: 8px 0 16px; min-height: 0; font-size: .85rem; }
 .row,
 .card footer,
 .notes footer {
@@ -500,10 +517,10 @@ h1 {
   }
   nav {
     width: 100%;
-    overflow: auto;
+    overflow: visible;
   }
-  nav button {
-    flex: 1;
+  nav button, nav a {
+    flex: 1 1 auto;
     white-space: nowrap;
   }
   .shell {
@@ -640,6 +657,8 @@ h1 {
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
+.opsgrid > .panel:nth-child(2) { background: var(--sand); }
+.farmer-wrap > .volunteer-panel { background: var(--clay); }
 .fieldrow {
   display: grid;
   grid-template-columns: 1fr 1fr;

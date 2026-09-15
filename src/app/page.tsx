@@ -427,7 +427,6 @@ export default function Home() {
           </span>
         </button>
         <nav>
-          <Link href="/mission" style={{ color: "inherit", padding: "10px 12px" }}>Our mission</Link>
           {user && <button onClick={async () => { await db?.auth.signOut(); setUser(null); setNotes([]); }}>Sign out</button>}
           <button
             className={tab === "find" ? "on" : ""}
@@ -441,6 +440,7 @@ export default function Home() {
           >
             Farmer tools
           </button>
+          <Link href="/mission" style={{ color: "inherit", padding: "10px 12px" }}>Our mission</Link>
           <button
             className={tab === "feedback" ? "on" : ""}
             onClick={() => setTab("feedback")}
@@ -515,12 +515,15 @@ export default function Home() {
           <div className="grid">
             <div className="cards">
               {shown.map((f) => {
-                const p = f.selling_locations[0],
+                // Surface the active selling place first, rather than an old
+                // location returned first by the database's unordered relation.
+                const p = f.selling_locations.find(place => isSellingNow(place, now))
+                    ?? f.selling_locations.find(place => place.is_active),
                   selling = f.selling_locations.some((place) =>
                     isSellingNow(place, now),
                   ),
                   stock = f.inventory_items.filter((i) =>
-                    ["available", "low_stock"].includes(i.stock_status),
+                    i.quantity > 0 && ["available", "low_stock"].includes(i.stock_status),
                   );
                 return (
                   <button
@@ -540,27 +543,27 @@ export default function Home() {
                       </span>
                     </div>
                     <h2>{f.name}</h2>
-                    <p>{f.blurb}</p>
                     {p && (
                       <div className="place">
                         <b>{p.location_name}</b>
                         <span>
-                          {p.address} · {clock(p.opens_at)}–{clock(p.closes_at)}
+                          {p.address}
                         </span>
+                        <span>{p.selling_date || "Selling date not provided"} · {p.opens_at && p.closes_at ? `${clock(p.opens_at)}–${clock(p.closes_at)}` : "Hours not provided"}</span>
                       </div>
                     )}
+                    {!p && <div className="place">Selling location and hours not provided.</div>}
+                    <p className="produce-label">Available produce</p>
                     <div className="chips">
-                      {stock.slice(0, 3).map((i) => (
+                      {stock.map((i) => (
                         <span key={i.id}>
                           {i.item_name} <b>{cash(i.price_cents)}</b>
                         </span>
                       ))}
                     </div>
+                    {!stock.length && <p className="availability-empty">No produce currently listed as available.</p>}
                     <footer>
-                      <span>
-                        {f.payment_methods.join(" · ") ||
-                          "Payment details pending"}
-                      </span>
+                      <span>Farm story, payment & volunteer details</span>
                       <b>View details →</b>
                     </footer>
                   </button>
