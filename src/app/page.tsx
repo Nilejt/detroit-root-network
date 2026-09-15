@@ -5,6 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 import FarmerTools from "./farmer-tools";
 import DetroitMap from "./detroit-map";
+import BetaLogin from "./beta-login";
 
 type Item = {
   id: string;
@@ -304,26 +305,31 @@ export default function Home() {
       .order("name");
     if (data?.length) setFarms(data as Farm[]);
   };
-  const loadNotes = async () => {
+  const loadNotes = useCallback(async () => {
     if (!db || !user) return;
     const { data } = await db
       .from("feedback")
       .select("id,comment,element_label,status,created_at")
       .order("created_at", { ascending: false });
     setNotes((data ?? []) as Note[]);
-  };
+  }, [user]);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- State changes only after the database request resolves.
     load();
     if (!db) return;
-    db.auth.getUser().then(({ data }) => setUser(data.user));
+    db.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+      if (new URLSearchParams(window.location.search).has("auth_error")) setNotice("The sign-in link expired or could not be verified. Request a new email link.");
+    });
     const { data } = db.auth.onAuthStateChange((_e, s) =>
       setUser(s?.user ?? null),
     );
     return () => data.subscription.unsubscribe();
   }, []);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- State changes only after the database request resolves.
     loadNotes();
-  }, [user]);
+  }, [loadNotes]);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60_000);
     return () => window.clearInterval(timer);
@@ -359,7 +365,7 @@ export default function Home() {
     if (!db) return setNotice("Supabase is not configured.");
     const { error } = await db.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: location.origin },
+      options: { emailRedirectTo: `${location.origin}/auth/callback` },
     });
     setNotice(error?.message ?? "Check your email for a secure sign-in link.");
   };
@@ -410,28 +416,6 @@ export default function Home() {
     URL.revokeObjectURL(link.href);
   };
   const selectFarm = useCallback((farm: Farm) => setOpen(farm), []);
-  const addFarm = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!db || !user) return setNotice("Sign in before adding a vendor.");
-    const f = new FormData(e.currentTarget),
-      name = String(f.get("name") ?? "").trim();
-    const { error } = await db.from("farms").insert({
-      created_by: user.id,
-      name,
-      slug: `${name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "")}-${Date.now().toString().slice(-5)}`,
-      blurb: f.get("blurb"),
-      base_address: f.get("address"),
-      test_tier: f.get("tier"),
-      is_published: true,
-    });
-    if (error) return setNotice(error.message);
-    e.currentTarget.reset();
-    setNotice("Vendor added.");
-    load();
-  };
   return (
     <main>
       <header>
@@ -442,6 +426,7 @@ export default function Home() {
           </span>
         </button>
         <nav>
+          {user && <button onClick={async () => { await db?.auth.signOut(); setUser(null); setNotes([]); }}>Sign out</button>}
           <button
             className={tab === "find" ? "on" : ""}
             onClick={() => setTab("find")}
@@ -527,7 +512,7 @@ export default function Home() {
           </div>
           <div className="grid">
             <div className="cards">
-              {shown.map((f, n) => {
+              {shown.map((f) => {
                 const p = f.selling_locations[0],
                   selling = f.selling_locations.some((place) =>
                     isSellingNow(place, now),
@@ -800,7 +785,7 @@ function Login({
   signIn: (e: FormEvent) => void;
 }) {
   return (
-    <form className="panel login" onSubmit={signIn}>
+    <div className="twocol"><form className="panel login" onSubmit={signIn}>
       <h2>Sign in to continue</h2>
       <p>Use a secure email link—no password to remember.</p>
       <label>
@@ -813,6 +798,6 @@ function Login({
         />
       </label>
       <button className="primary">Email me a sign-in link</button>
-    </form>
+    </form><BetaLogin /></div>
   );
 }

@@ -184,10 +184,8 @@ export default function FarmerTools({
     () => farms.filter((f) => allowed.includes(f.id)),
     [farms, allowed],
   );
-  useEffect(() => {
-    if (!selectedId && choices[0]) setSelectedId(choices[0].id);
-  }, [choices, selectedId]);
-  const farm = choices.find((f) => f.id === selectedId),
+  const activeId = choices.some((f) => f.id === selectedId) ? selectedId : choices[0]?.id ?? "";
+  const farm = choices.find((f) => f.id === activeId),
     location = farm?.selling_locations[0];
   async function saveFarm(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -334,7 +332,7 @@ export default function FarmerTools({
           <label>
             Editable T1 farm
             <select
-              value={selectedId}
+              value={activeId}
               onChange={(e) => setSelectedId(e.target.value)}
             >
               {choices.map((f) => (
