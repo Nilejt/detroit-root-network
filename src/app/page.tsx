@@ -6,6 +6,7 @@ import type { User } from "@supabase/supabase-js";
 import FarmerTools from "./farmer-tools";
 import DetroitMap from "./detroit-map";
 import BetaLogin from "./beta-login";
+import Link from "next/link";
 
 type Item = {
   id: string;
@@ -426,6 +427,7 @@ export default function Home() {
           </span>
         </button>
         <nav>
+          <Link href="/mission" style={{ color: "inherit", padding: "10px 12px" }}>Our mission</Link>
           {user && <button onClick={async () => { await db?.auth.signOut(); setUser(null); setNotes([]); }}>Sign out</button>}
           <button
             className={tab === "find" ? "on" : ""}
