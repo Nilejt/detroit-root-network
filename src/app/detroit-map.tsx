@@ -34,10 +34,13 @@ export default function DetroitMap<T extends MapFarm>({
   useEffect(() => {
     if (!host.current) return;
     let map: Map | undefined;
+    let resizeTimer: ReturnType<typeof setTimeout> | undefined;
     let cancelled = false;
     void import("leaflet").then(({ default: L }) => {
       if (cancelled || !host.current) return;
-      map = L.map(host.current, { scrollWheelZoom: false }).setView(
+      // This view is frequently unmounted when switching workspaces; avoid
+      // Leaflet animation callbacks retaining a removed map pane.
+      map = L.map(host.current, { scrollWheelZoom: false, zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false }).setView(
         [42.36, -83.09],
         11,
       );
@@ -59,8 +62,11 @@ export default function DetroitMap<T extends MapFarm>({
             iconAnchor: [19, 38],
           }),
         }).addTo(map!);
+        // Farm names are user content; Leaflet string tooltips interpret HTML.
+        const tooltip = document.createElement("span");
+        tooltip.textContent = `${farm.name} · ${farm.test_tier ?? "Live"}`;
         marker.bindTooltip(
-          `<b>${farm.name}</b><br>${farm.test_tier ?? "Live"}`,
+          tooltip,
           { direction: "top", offset: [0, -30] },
         );
         marker.on("click", () => onSelect(farm));
@@ -69,11 +75,13 @@ export default function DetroitMap<T extends MapFarm>({
         map.fitBounds(L.latLngBounds(bounds), {
           padding: [28, 28],
           maxZoom: 12,
+          animate: false,
         });
-      setTimeout(() => map?.invalidateSize(), 0);
+      resizeTimer = setTimeout(() => { if (!cancelled) map?.invalidateSize(); }, 0);
     });
     return () => {
       cancelled = true;
+      clearTimeout(resizeTimer);
       map?.remove();
     };
   }, [farms, onSelect]);

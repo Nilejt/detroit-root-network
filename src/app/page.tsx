@@ -7,6 +7,7 @@ import FarmerTools from "./farmer-tools";
 import DetroitMap from "./detroit-map";
 import BetaLogin from "./beta-login";
 import Link from "next/link";
+import MissionFeedback from "./mission/mission-feedback";
 
 type Item = {
   id: string;
@@ -600,7 +601,7 @@ export default function Home() {
           {!user ? (
             <Login {...{ email, setEmail, signIn }} />
           ) : (
-            <div className="twocol">
+            <><div className="twocol">
               <form className="panel form" onSubmit={saveNote}>
                 <h2>Leave page feedback</h2>
                 <label>
@@ -611,6 +612,7 @@ export default function Home() {
                   >
                     {[
                       "Discovery page",
+                      "Mission page",
                       "Vendor card",
                       "Map",
                       "Farmer inventory",
@@ -675,7 +677,7 @@ export default function Home() {
                   )}
                 </div>
               </div>
-            </div>
+            </div><MissionFeedback key={user.id} /></>
           )}
         </Workspace>
       )}

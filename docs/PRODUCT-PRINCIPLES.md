@@ -34,7 +34,7 @@ The mission frames trust through grower identity, current information, and farme
 
 ## Grow: useful depth without a crowded workspace
 
-Grow is planned, not implemented. Its purpose is to make practical farm insight accessible to Detroit urban growers who may not otherwise have suitable tools.
+The first Grow beta now implements private plot plans, harvest records, and corrections after migration 008 is installed. Forecasting and longer-range planning remain planned. Its purpose is to make practical farm insight accessible to Detroit urban growers who may not otherwise have suitable tools. See `GROW-BETA-SETUP.md` for access boundaries and activation checks.
 
 | Layer | Farmer workflow | Details revealed when needed |
 | --- | --- | --- |

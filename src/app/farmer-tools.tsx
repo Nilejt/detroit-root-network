@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import GrowTools from "./grow-tools";
 
 type Item = {
   id: string;
@@ -153,6 +154,7 @@ export default function FarmerTools({
     [allowed, setAllowed] = useState<string[]>([]),
     [selectedId, setSelectedId] = useState(""),
     [editing, setEditing] = useState<Item | null>(null);
+  const [mode, setMode] = useState<"sell" | "grow">("sell");
   useEffect(() => {
     if (!db) return;
     (async () => {
@@ -355,6 +357,12 @@ export default function FarmerTools({
           Sign out
         </button>
       </div>
+      <div className="filters" aria-label="Farmer workspace">
+        <button type="button" className={mode === "sell" ? "on" : ""} aria-pressed={mode === "sell"} onClick={() => setMode("sell")}>Farmer Sell</button>
+        <button type="button" className={mode === "grow" ? "on" : ""} aria-pressed={mode === "grow"} onClick={() => setMode("grow")}>Farmer Grow · Beta</button>
+      </div>
+      {mode === "grow" && <GrowTools key={farm.id} db={db} farmId={farm.id} />}
+      <div className="farmer-wrap" hidden={mode !== "sell"}>
       <div className="opsgrid">
         <form className="panel form" onSubmit={saveFarm}>
           <h2>Farm profile</h2>
@@ -648,6 +656,7 @@ export default function FarmerTools({
           </button>
         </form>
       </section>
+      </div>
     </div>
   );
 }

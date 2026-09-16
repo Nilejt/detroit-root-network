@@ -5,8 +5,8 @@
 1. Make a fresh database backup using the existing PowerShell backup procedure.
 2. Run `supabase/migrations/007_mission_review.sql` once in Supabase SQL Editor. It adds two editorial tables and an approval function; it does not alter farm tables, roles, memberships, or T2 policies.
 3. Deploy the application update through GitHub/Vercel. No new secrets or environment variables are required.
-4. Sign in through Farmer tools as Director Q, then open Our mission. Each section has a private editorial workspace. Submit replacement wording and a comment. Suggestions are saved in Supabase and survive browser closure.
-5. Sign in as Owner to review the current text alongside the proposal. Choose Review publication, then Approve and publish, or Reject. Approved copy appears for visitors on their next load, without a new deployment.
+4. Sign in through Farmer tools as Director Q, then open Director Q. Use Mission page feedback to select a section. The public mission page has no editorial controls. Submit replacement wording and a comment. Suggestions are saved in Supabase and survive browser closure.
+5. Sign in as Owner and open Director Q → Mission page feedback to review the current text alongside the proposal. Choose Review publication, then Approve and publish, or Reject. Approved copy appears for visitors on their next load, without a new deployment.
 
 If migration 007 is missing, the original mission still renders and editing is unavailable. Unsaved form text is not persisted: submit the suggestion before leaving the page.
 
