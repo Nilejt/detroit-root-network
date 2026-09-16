@@ -659,6 +659,8 @@ h1 {
   gap: 20px;
 }
 .opsgrid > .panel:nth-child(2) { background: var(--sand); }
+.grow-privacy { background: var(--sand); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin: 16px 0; line-height: 1.5; }
+.grow-privacy p { margin: 8px 0 0; }
 .farmer-wrap > .volunteer-panel { background: var(--clay); }
 .fieldrow {
   display: grid;

@@ -14,6 +14,8 @@ A farm may grow, sell, or do both, and switch between relevant workspaces withou
 
 ## Farmer control and data fidelity
 
+During beta, a documented database switch may give the Owner cross-T1 Grow access for product testing and support. Use test records for independent testing; inspect or alter real farm records only at that farmer's request. Disclose this capability to farmers. This is a policy commitment, not technical per-request consent enforcement. Disable and remove the exception before production; Q's cross-farm selling access does not grant private Grow access. See `GROW-OWNER-SUPPORT.md`.
+
 Growing records are private by default. Do not infer that cross-farm operational access also permits viewing future private growing logs; define that access explicitly before implementation. Keep T2 records read-only.
 
 Label forecasts as estimates with dates, units, assumptions, and source information. Keep actual harvest records distinct from forecasts and from quantities available for sale. Missing data is not zero. Preserve useful correction history.

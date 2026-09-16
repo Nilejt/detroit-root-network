@@ -7,7 +7,8 @@ type Harvest = { id: string; plot_id: string; harvested_on: string; quantity: nu
 type History = { id: string; record_type: string; previous_value: Record<string, unknown>; changed_at: string };
 
 /** Grow is deliberately separate from sale inventory and public listings.
- * Membership and T1 restrictions are enforced by SQL, never by the mode switch.
+ * Membership, the temporary Owner support exception, and T1 restrictions are
+ * enforced by SQL, never by the mode switch. See migration 009 and its runbook.
  */
 export default function GrowTools({ db, farmId }: { db: SupabaseClient | null; farmId: string }) {
   const [access, setAccess] = useState<"loading" | "ready" | "denied" | "unavailable">("loading");
@@ -46,7 +47,7 @@ export default function GrowTools({ db, farmId }: { db: SupabaseClient | null; f
     }catch{setMessage("Connection interrupted. Check saved records before retrying.");}finally{setBusy(false);}
   }
   if(access!=="ready")return <section className="panel"><h2>Farmer Grow · Beta</h2><p>{access==="loading"?"Loading your growing workspace…":access==="denied"?"Grow records are private to this farm’s members. Choose a farm you belong to, or ask the Owner to assign membership. Cross-farm selling access does not grant Grow access.":"Grow is not available yet. Apply migration 008, then reload; if it is already installed, check your connection."}</p><button className="quiet" onClick={()=>void load().catch(()=>setAccess("unavailable"))}>Retry</button></section>;
-  return <div className="farmer-wrap"><section className="panel"><h2>Farmer Grow · Beta</h2><p>Plan a plot. Record a harvest. Learn from your own records.</p><span className="tag">Private to farm members</span><p>Harvest dates are your plans, not forecasts. Forecasting and multi-year planning are coming later.</p><p role="status">{message}</p></section>
+  return <div className="farmer-wrap"><section className="panel"><h2>Farmer Grow · Beta</h2><p>Plan a plot. Record a harvest. Learn from your own records.</p><span className="tag">Private farm workspace</span><aside className="grow-privacy" aria-label="Beta data access notice"><strong>Your farm data during beta</strong><p>Your growing records are not public. During beta, Nile, the product Owner, may have administrator access for testing and support. He will only inspect or change your real farm records when you ask him to look or fix something. Product testing otherwise uses designated test data. Temporary cross-farm Owner access will be disabled before production.</p></aside><p>Harvest dates are your plans, not forecasts. Forecasting and multi-year planning are coming later.</p><p role="status">{message}</p></section>
     <div className="opsgrid"><form key={`plot-${plot?.id??"new"}-${formVersion}`} className="panel form" onSubmit={e=>void save(e,"plot")}><h2>{plot?"Edit plot plan":"Plan a plot"}</h2>
       <label>Plot name<input name="name" defaultValue={plot?.name} maxLength={120} required /></label><label>Crop<input name="crop" defaultValue={plot?.crop} maxLength={120} required /></label>
       <label>Season year<input name="season" type="number" min="2000" max="2200" defaultValue={plot?.season??new Date().getFullYear()} required /></label>

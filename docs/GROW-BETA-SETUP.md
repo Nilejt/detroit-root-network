@@ -1,5 +1,7 @@
 # Activate the first Grow beta
 
+**Beta support update:** Migration 009 optionally grants temporary Owner access across T1 farms through an administrator-controlled switch. It does not expand Q's access. The membership-only behavior described below is the baseline when that switch is disabled. See `GROW-OWNER-SUPPORT.md` for farmer notice, request-only use, and the mandatory production cutoff.
+
 ## What ships
 
 Farmer tools now has Farmer Sell and Farmer Grow tabs for the selected farm. Grow supports saved plot/crop plans, planting and planned harvest dates, optional soil and growing notes, harvest quantities with explicit units, corrections, and private correction history. Changing farms resets the Grow workspace. Forecasting, automatic weather feeds, volunteer predictions, long-range scenario planning, billing, and automatic inventory publication are not part of this release.
