@@ -1006,25 +1006,90 @@ h1 {
     margin-bottom: 14px;
   }
 }
-/* Grow keeps strong forest accents, with light work surfaces and touch-sized cells. */
-.grow-planner { min-width: 0; }
-.planner-heading, .planner-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
-.planner-heading { justify-content: space-between; align-items: center; }
-.planner-help, .planner-add { background: #f5eddf; color: #293e30; border: 1px solid #cebfaa; border-radius: 12px; padding: 16px; margin: 16px 0; }
-.planner-help li { margin: 8px 0; }
-.planner-workspace { border: 0; padding: 0; min-width: 0; }
-.grow-planner label { display: grid; gap: 6px; margin: 8px 0; font-weight: 600; }
-.grow-planner input, .grow-planner select { min-height: 48px; max-width: 100%; border: 1px solid #98aa99; border-radius: 8px; padding: 8px; background: white; color: #263c2d; }
-.grow-planner input[type=number] { width: 100px; }
-.grow-planner input[type=color] { width: 64px; padding: 4px; }
-.grow-planner button { min-height: 48px; white-space: normal; }
-.planner-columns { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; }
+/* Grow: one shared plot/crop workspace, with progressive controls and touch targets.
+   Form fields fill their grid columns; the canvas scrolls instead of shrinking. */
+.grow-planner { min-width: 0; background: #fffdf8; }
+.grow-planner p, .grow-harvest p { line-height: 1.55; }
+.planner-heading, .planner-actions, .planner-step-heading { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.planner-heading { justify-content: space-between; margin-bottom: 20px; }
+.planner-heading h2, .planner-heading h3, .planner-context h3, .planner-step-heading h3 { margin: 0 0 6px; }
+.planner-heading p, .planner-step-heading p { margin: 0; }
+.planner-help { background: #edf2e8; padding: 20px 24px; border-radius: 14px; margin: 16px 0; }
+.planner-help ol { padding-left: 22px; list-style: decimal; }
+.planner-help li { margin: 10px 0; }
+.planner-status { background: #f3f5ef; border-left: 3px solid #547650; padding: 12px 16px; border-radius: 0 8px 8px 0; }
+.planner-workspace, .planner-crop-form fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.planner-plot-picker { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 16px; margin: 24px 0; }
+.grow-planner label, .grow-harvest label { display: grid; gap: 8px; font-weight: 650; min-width: 0; }
+.grow-planner input, .grow-planner select, .grow-planner textarea, .grow-harvest input, .grow-harvest select, .grow-harvest textarea {
+  width: 100%; min-width: 0; min-height: 48px; max-width: 100%; border: 1px solid #96a795; border-radius: 9px;
+  padding: 11px 12px; background: #fff; color: #263c2d; font-size: 16px;
+}
+.grow-planner input[type=color] { width: 84px; padding: 5px; }
+.grow-planner button, .grow-harvest button { min-height: 48px; white-space: normal; padding: 12px 18px; }
+.planner-context { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px; background: #e7eddf; border-radius: 14px; margin-bottom: 24px; }
+.planner-context h3 { font-size: 1.45rem; overflow-wrap: anywhere; }
+.planner-context p { margin: 0; }
+.planner-save-state { font-size: .85rem; font-weight: 700; padding: 8px 12px; border-radius: 8px; background: #fffdf8; flex-shrink: 0; }
+.planner-step-heading { margin: 24px 0 18px; }
+.planner-step-heading > div { flex: 1; }
+.planner-step-heading > button { margin-left: auto; }
+.planner-step { display: grid; place-items: center; height: 34px; width: 34px; border-radius: 50%; background: #315e40; color: white; font-weight: 800; flex-shrink: 0; }
+.planner-settings { padding: 22px; background: #f5f3eb; border: 1px solid #d5d5c8; border-radius: 14px; margin-bottom: 28px; }
+.planner-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin: 18px 0 22px; }
+.planner-caption { color: #526050; font-size: .9rem; line-height: 1.5; }
+.planner-crop-workspace { border-top: 1px solid #c8d3c1; margin-top: 24px; padding-top: 4px; }
+.planner-crop-form { background: white; border: 1px solid #9fb196; border-radius: 14px; padding: 24px; margin: 24px 0; }
+.planner-crop-form h3 { font-size: 1.25rem; margin: 0 0 8px; }
+.planner-field-group { padding-top: 16px; border-top: 1px solid #d5dfcf; }
+.planner-field-group h4 { margin: 0; }
+.planner-entry { scroll-margin-top: 24px; }
+.planner-mode { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 18px 0; margin-top: 12px; }
+.planner-mode p { margin: 6px 0 0; }
+.planner-mode.is-editing { background: #fff0d7; border: 1px solid #c8a468; padding: 18px; border-radius: 12px; margin: 22px 0; }
+.planner-columns { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(280px, 1fr); gap: 28px; align-items: start; }
 .planner-columns > * { min-width: 0; }
-.planner-scroll { max-width: 100%; overflow: auto; padding: 4px; background: #faf8f1; border: 1px solid #bac5b7; border-radius: 10px; }
-.planner-grid { display: grid; gap: 3px; width: max-content; padding: 4px; }
-.grow-planner .planner-cell { width: 48px; height: 48px; border: 1px dashed #9aab99; padding: 0; border-radius: 5px; background: #f7f5ef; color: #243d2c; font-size: 16px; font-weight: 700; }
-.grow-planner .planner-cell.inside { background: #dde7d6; border-style: solid; }
-.grow-planner .planner-cell.selected { outline: 2px solid #172e20; outline-offset: -4px; }
-.grow-planner button:focus-visible, .planner-scroll:focus-visible { outline: 3px solid #ad653e; outline-offset: 2px; }
-.planner-layers .block button { max-width: 100%; }
-@media (max-width: 760px) { .planner-columns { grid-template-columns: minmax(0, 1fr); } .planner-toolbar > label { max-width: 100%; } }
+.planner-scroll { max-width: 100%; overflow: auto; padding: 16px; background: #f7f7f1; border: 1px solid #bdcbb5; border-radius: 12px; scroll-margin-top: 24px; }
+.planner-grid { display: grid; gap: 4px; width: max-content; padding: 3px; }
+.grow-planner .planner-cell { width: 48px; height: 48px; border: 1px dashed #9aab99; padding: 0; border-radius: 5px; background: #faf9f4; color: #203626; font-size: 15px; font-weight: 750; }
+.grow-planner .planner-cell.inside { background: #e6eddc; border-style: solid; }
+.grow-planner .planner-cell.selected { outline: 2px solid #203b28; outline-offset: -4px; }
+.grow-planner button:focus-visible, .planner-scroll:focus-visible { outline: 3px solid #ad653e; outline-offset: 3px; }
+.planner-layers h4 { margin: 0 0 14px; font-size: 1.1rem; }
+.planner-layer-list { display: grid; gap: 12px; }
+.grow-planner .planner-layer { display: flex; align-items: center; gap: 12px; width: 100%; background: white; border: 1px solid #b5c3ab; border-radius: 12px; text-align: left; color: #263c2d; padding: 16px; }
+.grow-planner .planner-layer.is-selected { background: #eaf1e3; border: 2px solid #315e40; padding: 15px; }
+.planner-layer-number { display: grid; place-items: center; width: 36px; height: 36px; border: 3px solid; border-radius: 9px; font-weight: 800; background: white; flex-shrink: 0; }
+.planner-layer > span:nth-child(2) { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.planner-layer small { display: block; font-size: .83rem; margin-top: 4px; }
+.planner-layer-action { font-size: .8rem; font-weight: 700; }
+.planner-empty { border: 1px dashed #aebeaa; border-radius: 12px; padding: 18px; background: #fff; }
+.planner-selected { background: #f0f5e9; border: 1px solid #a9ba9c; border-radius: 14px; padding: 24px; margin-top: 24px; }
+.planner-overlap { background: #fff0d7; border: 1px solid #c8a468; border-radius: 12px; padding: 18px; display: grid; gap: 12px; margin: 16px 0; }
+.planner-more { border-top: 1px solid #d1d9cb; padding-top: 16px; margin-top: 24px; }
+.planner-more > summary { min-height: 48px; cursor: pointer; font-weight: 650; padding: 12px 0; }
+.planner-more[open] > label { margin: 16px 0; }
+.planner-savebar { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; padding: 20px; margin: 28px 0 12px; border: 1px solid #b4c5a9; border-radius: 14px; background: #e7eddf; }
+.planner-savebar span { display: block; margin-top: 4px; font-size: .9rem; }
+.grow-harvest { scroll-margin-top: 24px; }
+.grow-intro .grow-privacy { margin-top: 12px; }
+@media (max-width: 1000px) { .planner-columns { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) {
+  .planner-plot-picker, .planner-form-grid { grid-template-columns: minmax(0, 1fr); }
+  .planner-context { align-items: start; flex-direction: column; }
+  .planner-settings, .planner-crop-form, .planner-selected { padding: 16px; }
+  .planner-actions { align-items: stretch; gap: 12px; }
+  .planner-actions > button { flex: 1 1 160px; }
+  .planner-savebar { padding: 16px; }
+  .planner-savebar > *, .planner-savebar .planner-actions { width: 100%; }
+  .planner-step-heading > button { margin-left: 48px; }
+  .planner-layer-action { display: none; }
+  .planner-scroll { padding: 8px; }
+}
+
+.planner-delete { color: #853f30; border-color: #b8806e; }
+.planner-deleted-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #d1d9cb; }
+.planner-deleted-row p { margin: 4px 0 0; }
+
+.grow-planner button:disabled, .grow-harvest button:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+.planner-entry, .grow-harvest { scroll-margin-top: 110px; }

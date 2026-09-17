@@ -1,68 +1,152 @@
 "use client";
-import { FormEvent, useCallback, useEffect, useState } from "react";
-import GrowPlanner from "./grow-planner";
-import type { SupabaseClient } from "@supabase/supabase-js";
 
-type Plot = { id: string; name: string; crop: string; season: number; planted_on: string | null; planned_harvest_on: string | null; soil_type: string; notes: string };
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import GrowPlanner from "./grow-planner";
+import type { GrowCrop } from "./grow-crop-form";
+
 type Harvest = { id: string; plot_id: string; harvested_on: string; quantity: number; unit: string; notes: string };
 type History = { id: string; record_type: string; previous_value: Record<string, unknown>; changed_at: string };
 
-/** Grow is deliberately separate from sale inventory and public listings.
- * Membership, the temporary Owner support exception, and T1 restrictions are
- * enforced by SQL, never by the mode switch. See migration 009 and its runbook.
+/** Grow access is enforced by ordinary Supabase identity and SQL. A workspace
+ * switch never grants membership, Owner support access, or T2 write permission.
  */
-export default function GrowTools({ db, farmId, onDirty }: { db: SupabaseClient | null; farmId: string; onDirty: (dirty: boolean) => void }) {
+export default function GrowTools({ db, farmId, onDirty }: {
+  db: SupabaseClient | null; farmId: string; onDirty: (dirty: boolean) => void;
+}) {
   const [access, setAccess] = useState<"loading" | "ready" | "denied" | "unavailable">("loading");
-  const [plots, setPlots] = useState<Plot[]>([]), [harvests, setHarvests] = useState<Harvest[]>([]);
+  const [crops, setCrops] = useState<GrowCrop[]>([]);
+  const [harvests, setHarvests] = useState<Harvest[]>([]);
   const [history, setHistory] = useState<History[]>([]);
-  const [plot, setPlot] = useState<Plot | null>(null), [harvest, setHarvest] = useState<Harvest | null>(null);
-  const [message, setMessage] = useState(""), [busy, setBusy] = useState(false);
+  const [harvest, setHarvest] = useState<Harvest | null>(null);
+  const [harvestCrop, setHarvestCrop] = useState("");
+  const [harvestOpen, setHarvestOpen] = useState(false);
+  const [plannerDirty, setPlannerDirty] = useState(false);
+  const [harvestDirty, setHarvestDirty] = useState(false);
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
   const [formVersion, setFormVersion] = useState(0);
+  const harvestRef = useRef<HTMLElement>(null);
+
   const load = useCallback(async () => {
     if (!db) { setAccess("unavailable"); return; }
     const permission = await db.rpc("drn_can_grow", { target_farm: farmId });
     if (permission.error) { setAccess("unavailable"); return; }
-    if (!permission.data) { setAccess("denied"); setPlots([]); setHarvests([]); setHistory([]); return; }
-    const [p,h,a] = await Promise.all([
-      db.from("grow_plots").select("id,name,crop,season,planted_on,planned_harvest_on,soil_type,notes").eq("farm_id",farmId).order("season",{ascending:false}),
-      db.from("grow_harvests").select("id,plot_id,harvested_on,quantity,unit,notes").eq("farm_id",farmId).order("harvested_on",{ascending:false}),
-      db.from("grow_history").select("id,record_type,previous_value,changed_at").eq("farm_id",farmId).order("changed_at",{ascending:false}).limit(30),
+    if (!permission.data) { setAccess("denied"); setCrops([]); setHarvests([]); setHistory([]); return; }
+    const [p, h, a] = await Promise.all([
+      db.from("grow_plots").select("id,name,crop,season,planted_on,planned_harvest_on,soil_type,notes").eq("farm_id", farmId).order("season", { ascending: false }),
+      db.from("grow_harvests").select("id,plot_id,harvested_on,quantity,unit,notes").eq("farm_id", farmId).order("harvested_on", { ascending: false }),
+      db.from("grow_history").select("id,record_type,previous_value,changed_at").eq("farm_id", farmId).order("changed_at", { ascending: false }).limit(30),
     ]);
-    if(p.error||h.error||a.error){setAccess("unavailable");return;}
-    setPlots(p.data??[]);setHarvests(h.data??[]);setHistory(a.data??[]);setAccess("ready");
-  },[db,farmId]);
-  useEffect(()=>{
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronizes private database records.
-    void load().catch(()=>setAccess("unavailable"));
-  },[load]);
-  async function save(event: FormEvent<HTMLFormElement>,kind:"plot"|"harvest") {
-    event.preventDefault();if(!db||busy)return;setBusy(true);setMessage("");
-    const f=new FormData(event.currentTarget);
-    const text=(key:string)=>String(f.get(key)??"").trim();
-    try {
-      const row=kind==="plot"?{name:text("name"),crop:text("crop"),season:Number(f.get("season")),planted_on:text("planted_on")||null,planned_harvest_on:text("planned_harvest_on")||null,soil_type:text("soil_type"),notes:text("notes")}:{harvested_on:text("harvested_on"),quantity:Number(f.get("quantity")),unit:text("unit"),notes:text("notes")};
-      const table=kind==="plot"?"grow_plots":"grow_harvests",editing=kind==="plot"?plot:harvest;
-      const result=editing?await db.from(table).update(row).eq("id",editing.id).eq("farm_id",farmId).select("id").single():await db.from(table).insert({...row,farm_id:farmId,...(kind==="harvest"?{plot_id:text("plot_id")}: {})}).select("id").single();
-      if(result.error){setMessage("Could not save. Check your entries and farm access. Your draft is still here.");return;}
-      setPlot(null);setHarvest(null);setFormVersion(v=>v+1);await load();setMessage("Saved privately. Sale inventory and public listings are unchanged.");
-    }catch{setMessage("Connection interrupted. Check saved records before retrying.");}finally{setBusy(false);}
+    if (p.error || h.error || a.error) { setAccess("unavailable"); return; }
+    setCrops(p.data ?? []); setHarvests(h.data ?? []); setHistory(a.data ?? []); setAccess("ready");
+  }, [db, farmId]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronizes private farm records.
+    void load().catch(() => setAccess("unavailable"));
+  }, [load]);
+  useEffect(() => { onDirty(plannerDirty || harvestDirty); }, [plannerDirty, harvestDirty, onDirty]);
+  useEffect(() => {
+    if (!harvestDirty) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [harvestDirty]);
+
+  async function refreshHistory() {
+    if (!db) return;
+    const result = await db.from("grow_history").select("id,record_type,previous_value,changed_at").eq("farm_id", farmId).order("changed_at", { ascending: false }).limit(30);
+    if (!result.error) setHistory(result.data ?? []);
   }
-  if(access!=="ready")return <section className="panel"><h2>Farmer Grow · Beta</h2><p>{access==="loading"?"Loading your growing workspace…":access==="denied"?"Grow records are private to this farm’s members. Choose a farm you belong to, or ask the Owner to assign membership. Cross-farm selling access does not grant Grow access.":"Grow is not available yet. Apply migration 008, then reload; if it is already installed, check your connection."}</p><button className="quiet" onClick={()=>void load().catch(()=>setAccess("unavailable"))}>Retry</button></section>;
-  return <div className="farmer-wrap"><section className="panel"><h2>Farmer Grow · Beta</h2><p>Plan a plot. Record a harvest. Learn from your own records.</p><span className="tag">Private farm workspace</span><aside className="grow-privacy" aria-label="Beta data access notice"><strong>Your farm data during beta</strong><p>Your growing records are not public. During beta, Nile, the product Owner, may have administrator access for testing and support. He will only inspect or change your real farm records when you ask him to look or fix something. Product testing otherwise uses designated test data. Temporary cross-farm Owner access will be disabled before production.</p></aside><p>Harvest dates are your plans, not forecasts. Forecasting and multi-year planning are coming later.</p><p role="status">{message}</p></section>
-    {db && <GrowPlanner db={db} farmId={farmId} crops={plots} onDirty={onDirty} />}
-    <div className="opsgrid"><form key={`plot-${plot?.id??"new"}-${formVersion}`} className="panel form" onSubmit={e=>void save(e,"plot")}><h2>{plot?"Edit crop plan":"Plan a crop"}</h2>
-      <label>Crop plan name<input name="name" defaultValue={plot?.name} maxLength={120} required /></label><label>Crop<input name="crop" defaultValue={plot?.crop} maxLength={120} required /></label>
-      <label>Season year<input name="season" type="number" min="2000" max="2200" defaultValue={plot?.season??new Date().getFullYear()} required /></label>
-      <label>Planting date<input name="planted_on" type="date" defaultValue={plot?.planted_on??""} /></label><label>Planned harvest date<input name="planned_harvest_on" type="date" defaultValue={plot?.planned_harvest_on??""} /></label>
-      <details><summary>Optional soil and notes</summary><label>Soil type<input name="soil_type" defaultValue={plot?.soil_type} maxLength={200} /></label><label>Growing notes<textarea name="notes" defaultValue={plot?.notes} maxLength={2000}/></label></details>
-      <button className="primary" disabled={busy}>Save crop plan</button>{plot&&<button type="button" className="quiet" onClick={()=>setPlot(null)}>Cancel plot edit</button>}
-    </form><form key={`harvest-${harvest?.id??"new"}-${formVersion}`} className="panel form" onSubmit={e=>void save(e,"harvest")}><h2>{harvest?"Correct harvest record":"Record a harvest"}</h2>
-      <label>Plot<select name="plot_id" defaultValue={harvest?.plot_id??plots[0]?.id} disabled={!!harvest||!plots.length} required>{plots.map(p=><option key={p.id} value={p.id}>{p.name} · {p.crop} · {p.season}</option>)}</select></label>
-      <label>Harvest date<input name="harvested_on" type="date" defaultValue={harvest?.harvested_on} required /></label><label>Quantity<input name="quantity" type="number" min="0.001" max="999999" step="0.001" defaultValue={harvest?.quantity} required /></label><label>Unit<select name="unit" defaultValue={harvest?.unit??"lb"}>{["lb","kg","bunch","each","bag","box"].map(u=><option key={u}>{u}</option>)}</select></label><label>Harvest notes<textarea name="notes" maxLength={2000} defaultValue={harvest?.notes}/></label>
-      <button className="primary" disabled={busy||!plots.length}>Save harvest</button>{!plots.length&&<p>Save your first plot before recording a harvest.</p>}{harvest&&<button type="button" className="quiet" onClick={()=>setHarvest(null)}>Cancel correction</button>}
-    </form></div>
-    <section className="panel"><h2>Your crop plans</h2>{!plots.length&&<p>No plot plans yet.</p>}{plots.map(p=><article className="block" key={p.id}><h3>{p.name} · {p.crop} · {p.season}</h3><p>Planted: {p.planted_on??"Not recorded"} · Planned harvest: {p.planned_harvest_on??"Not set"}</p><p>{p.soil_type} {p.notes}</p><button className="quiet" onClick={()=>setPlot(p)}>Edit {p.name}</button></article>)}</section>
-    <section className="panel"><h2>Harvest history</h2>{!harvests.length&&<p>No harvests recorded yet.</p>}{harvests.map(h=><article className="block" key={h.id}><h3>{plots.find(p=>p.id===h.plot_id)?.name??"Plot"} · {h.harvested_on}</h3><p>{h.quantity} {h.unit} · {h.notes}</p><button className="quiet" onClick={()=>setHarvest(h)}>Correct record</button></article>)}</section>
-    <details className="panel"><summary>Correction history · latest 30 changes</summary>{!history.length&&<p>No corrections recorded.</p>}{history.map(h=><div className="block" key={h.id}><p>{h.changed_at} · {h.record_type==="grow_plots"?"Plot plan":"Harvest"}</p><p>Previous values: {Object.entries(h.previous_value).filter(([key])=>!["id","farm_id","created_at","plot_id"].includes(key)).map(([key,value])=>`${key.replaceAll("_"," ")}: ${value??"Not recorded"}`).join(" · ")}</p></div>)}</details>
+  function cropSaved(crop: GrowCrop) {
+    setCrops(previous => [...previous.filter(item => item.id !== crop.id), crop]);
+    // Do not reload/unmount the planner after saving crop details: its layout may
+    // still be a draft. History refresh is independent of the active workspace.
+    void refreshHistory().catch(() => {});
+  }
+  function openHarvest(cropId: string, record: Harvest | null = null) {
+    if (harvestDirty && !window.confirm("Discard the unsaved harvest entry?")) return;
+    setHarvest(record); setHarvestCrop(cropId); setHarvestOpen(true); setHarvestDirty(false);
+    setFormVersion(version => version + 1); setMessage("");
+    requestAnimationFrame(() => {
+      harvestRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+      harvestRef.current?.querySelector<HTMLInputElement>('input[type="date"]')?.focus({ preventScroll: true });
+    });
+  }
+  async function saveHarvest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); if (!db || busy) return;
+    const fields = new FormData(event.currentTarget);
+    const row = { harvested_on: String(fields.get("harvested_on")), quantity: Number(fields.get("quantity")), unit: String(fields.get("unit")), notes: String(fields.get("notes") ?? "").trim() };
+    setBusy(true); setMessage("");
+    try {
+      const columns = "id,plot_id,harvested_on,quantity,unit,notes";
+      const result = harvest
+        ? await db.from("grow_harvests").update(row).eq("id", harvest.id).eq("farm_id", farmId).select(columns).single()
+        : await db.from("grow_harvests").insert({ ...row, farm_id: farmId, plot_id: harvestCrop }).select(columns).single();
+      if (result.error || !result.data) { setMessage("Could not save this harvest. Check your entries and connection; your draft is still here."); return; }
+      setHarvests(previous => [result.data as Harvest, ...previous.filter(item => item.id !== result.data.id)].sort((a, b) => b.harvested_on.localeCompare(a.harvested_on)));
+      setHarvest(null); setHarvestDirty(false); setFormVersion(version => version + 1);
+      setMessage("Harvest saved privately. Sale inventory is unchanged.");
+      void refreshHistory().catch(() => {});
+    } catch { setMessage("Connection interrupted. Check harvest history before retrying."); }
+    finally { setBusy(false); }
+  }
+
+  if (access !== "ready") return <section className="panel"><h2>Farmer Grow · Beta</h2>
+    <p>{access === "loading" ? "Loading your growing workspace…" : access === "denied" ? "Grow records are private to this farm’s members. Choose a farm you belong to, or ask the Owner to assign membership. Cross-farm selling access does not grant Grow access." : "Grow is unavailable. Check your connection or ask the Owner to check this farm’s setup."}</p>
+    <button className="quiet" onClick={() => void load().catch(() => setAccess("unavailable"))}>Retry</button>
+  </section>;
+
+  return <div className="farmer-wrap">
+    <section className="panel grow-intro"><h2>Farmer Grow · Beta</h2><p>Plan your space, grow your crops, and keep track of harvests.</p>
+      <details className="grow-privacy"><summary>Your farm data is private · Owner beta support access</summary>
+        <p>During beta, Nile, the product Owner, may have administrator access for testing and support. He will only inspect or change your real farm records when you ask him to look or fix something. Product testing otherwise uses designated test data. Temporary cross-farm Owner access will be disabled before production.</p>
+      </details>
+    </section>
+    {db && <GrowPlanner db={db} farmId={farmId} crops={crops} onDirty={setPlannerDirty} onCropSaved={cropSaved} onHarvest={openHarvest} />}
+    <section className="panel grow-harvest" ref={harvestRef} aria-label="Harvest records">
+      <div className="planner-heading"><div><span className="tag">From your crops</span><h2>Harvests</h2><p>Select a crop in your plot to record its harvest, or choose a saved crop here.</p></div>
+        <button className="quiet" disabled={!crops.length} onClick={() => openHarvest(crops[0]?.id ?? "")}>Record a harvest</button>
+      </div>
+      {!crops.length && <p>Your crops will be available here after you add them to the workspace above.</p>}
+      {harvestOpen && <form key={`${harvest?.id ?? "new"}-${formVersion}`} className="form planner-crop-form" onChange={() => setHarvestDirty(true)} onSubmit={event => void saveHarvest(event)}>
+        <fieldset disabled={busy}>
+          <h3>{harvest ? "Correct a harvest" : `Record a harvest · ${crops.find(crop => crop.id === harvestCrop)?.crop ?? "Choose crop"}`}</h3>
+          <label>Harvested crop<select aria-label="Harvested crop" value={harvestCrop} onChange={event => setHarvestCrop(event.target.value)} disabled={!!harvest} required>
+            <option value="" disabled>Choose a crop</option>{crops.map(crop => <option key={crop.id} value={crop.id}>{crop.crop} · {crop.name} · {crop.season}</option>)}
+          </select></label>
+          <div className="planner-form-grid">
+            <label>Harvest date<input name="harvested_on" type="date" defaultValue={harvest?.harvested_on} required /></label>
+            <label>Quantity<input name="quantity" type="number" min="0.001" max="999999" step="0.001" defaultValue={harvest?.quantity} required /></label>
+            <label>Unit<select name="unit" defaultValue={harvest?.unit ?? "lb"}>{["lb", "kg", "bunch", "each", "bag", "box"].map(unit => <option key={unit}>{unit}</option>)}</select></label>
+          </div>
+          <label>Harvest notes<textarea name="notes" maxLength={2000} defaultValue={harvest?.notes} /></label>
+          <p role="status">{message}</p><div className="planner-actions">
+            <button className="primary" disabled={!harvestCrop}>Save harvest</button>
+            <button type="button" className="quiet" onClick={() => { if (harvestDirty && !window.confirm("Discard this unsaved harvest entry?")) return; setHarvestDirty(false); setHarvestOpen(false); }}>Close harvest form</button>
+          </div>
+        </fieldset>
+      </form>}
+      <details className="planner-more"><summary>Harvest history · {harvests.length} records</summary>
+        {!harvests.length && <p>No harvests recorded yet.</p>}
+        {harvests.map(record => <article className="block" key={record.id}>
+          <h3>{crops.find(crop => crop.id === record.plot_id)?.crop ?? "Crop"} · {record.harvested_on}</h3><p>{record.quantity} {record.unit} · {record.notes}</p>
+          <button className="quiet" onClick={() => openHarvest(record.plot_id, record)}>Correct this harvest</button>
+        </article>)}
+      </details>
+    </section>
+    <details className="panel"><summary>Saved crop records · {crops.length}</summary>
+      <p>These are crop details, not additional physical plots. Use “Use a saved crop” in a plot to place one of these records. Expected harvest dates are your plans, not forecasts.</p>
+      {crops.map(crop => <article className="block" key={crop.id}><h3>{crop.crop} · {crop.name} · {crop.season}</h3>
+        <p>Planted: {crop.planted_on ?? "Not set"} · Expected harvest: {crop.planned_harvest_on ?? "Not set"}</p><p>{crop.soil_type} {crop.notes}</p>
+        <button className="quiet" onClick={() => openHarvest(crop.id)}>Record harvest</button>
+      </article>)}
+    </details>
+    <details className="panel"><summary>Crop & harvest correction history · latest 30</summary>
+      {!history.length && <p>No corrections recorded.</p>}
+      {history.map(record => <div className="block" key={record.id}><p>{record.changed_at} · {record.record_type === "grow_plots" ? "Crop details" : "Harvest"}</p>
+        <p>Previous values: {Object.entries(record.previous_value).filter(([key]) => !["id", "farm_id", "created_at", "plot_id"].includes(key)).map(([key, value]) => `${key.replaceAll("_", " ")}: ${value ?? "Not recorded"}`).join(" · ")}</p>
+      </div>)}
+    </details>
   </div>;
 }

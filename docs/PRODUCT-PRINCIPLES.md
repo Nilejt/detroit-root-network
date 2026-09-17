@@ -36,7 +36,7 @@ The mission frames trust through grower identity, current information, and farme
 
 ## Grow: useful depth without a crowded workspace
 
-The first Grow beta now implements private plot plans, harvest records, and corrections after migration 008 is installed. Migration 010 adds private, versioned physical plot layouts with crop layers; see `GROW-PLANNER-RELEASE.md` for activation and limits. Forecasting and longer-range planning remain planned. Its purpose is to make practical farm insight accessible to Detroit urban growers who may not otherwise have suitable tools. See `GROW-BETA-SETUP.md` for access boundaries and activation checks.
+The first Grow beta now implements private plot plans, harvest records, and corrections after migration 008 is installed. Migration 010 adds private, versioned physical plot layouts with crop layers. Migration 011 adds recoverable deletion of physical plots; deleting a plot retains crop identities, harvest records and layout revisions. The connected UI places crop creation, positioning and harvest entry in one workflow; see `GROW-PLANNER-RELEASE.md` for activation and limits. Forecasting and longer-range planning remain planned. Its purpose is to make practical farm insight accessible to Detroit urban growers who may not otherwise have suitable tools. See `GROW-BETA-SETUP.md` for access boundaries and activation checks.
 
 | Layer | Farmer workflow | Details revealed when needed |
 | --- | --- | --- |

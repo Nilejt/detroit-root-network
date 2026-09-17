@@ -1,4 +1,6 @@
-# Grow plot planner — activation and handoff
+# Grow plot planner — original activation and handoff
+
+> The connected plot/crop redesign and recoverable deletion supersede the original UI walkthrough below. See `GROW-USABILITY-RELEASE.md`. Migration 010 remains required; the new delete/restore controls require migration 011.
 
 Prepared September 17, 2026. Implemented and locally tested; this document does not certify a live deployment or that migration 010 has been applied to Supabase.
 

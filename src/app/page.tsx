@@ -286,7 +286,7 @@ const isSellingNow = (place: Place, date: Date) => {
 export default function Home() {
   const [plannerDirty, setPlannerDirty] = useState(false);
   function leavePlanner() {
-    if (plannerDirty && !window.confirm("Discard unsaved plot layout changes?")) return false;
+    if (plannerDirty && !window.confirm("Discard unsaved Grow changes?")) return false;
     setPlannerDirty(false); return true;
   }
   const [farms, setFarms] = useState<Farm[]>(demos),
