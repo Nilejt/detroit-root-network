@@ -143,12 +143,16 @@ export default function FarmerTools({
   farms,
   reload,
   setNotice,
+  plannerDirty,
+  onPlannerDirty,
 }: {
   db: SupabaseClient | null;
   user: User;
   farms: Farm[];
   reload: () => Promise<void>;
   setNotice: (x: string) => void;
+  plannerDirty: boolean;
+  onPlannerDirty: (dirty: boolean) => void;
 }) {
   const [role, setRole] = useState("farmer"),
     [allowed, setAllowed] = useState<string[]>([]),
@@ -336,6 +340,8 @@ export default function FarmerTools({
             <select
               value={activeId}
               onChange={(e) => {
+                if (plannerDirty && !window.confirm("Discard unsaved plot layout changes?")) return;
+                onPlannerDirty(false);
                 setSelectedId(e.target.value);
                 setEditing(null);
               }}
@@ -353,15 +359,15 @@ export default function FarmerTools({
             <strong>{farm.name}</strong>
           </div>
         )}
-        <button className="quiet" onClick={() => db?.auth.signOut()}>
+        <button className="quiet" onClick={() => { if (plannerDirty && !window.confirm("Discard unsaved plot layout changes?")) return; onPlannerDirty(false); void db?.auth.signOut(); }}>
           Sign out
         </button>
       </div>
       <div className="filters" aria-label="Farmer workspace">
-        <button type="button" className={mode === "sell" ? "on" : ""} aria-pressed={mode === "sell"} onClick={() => setMode("sell")}>Farmer Sell</button>
+        <button type="button" className={mode === "sell" ? "on" : ""} aria-pressed={mode === "sell"} onClick={() => { if (plannerDirty && !window.confirm("Discard unsaved plot layout changes?")) return; onPlannerDirty(false); setMode("sell"); }}>Farmer Sell</button>
         <button type="button" className={mode === "grow" ? "on" : ""} aria-pressed={mode === "grow"} onClick={() => setMode("grow")}>Farmer Grow · Beta</button>
       </div>
-      {mode === "grow" && <GrowTools key={farm.id} db={db} farmId={farm.id} />}
+      {mode === "grow" && <GrowTools key={farm.id} db={db} farmId={farm.id} onDirty={onPlannerDirty} />}
       <div className="farmer-wrap" hidden={mode !== "sell"}>
       <div className="opsgrid">
         <form className="panel form" onSubmit={saveFarm}>

@@ -11,6 +11,7 @@
     {"title":"Food discovery", "body":"Search farms and produce, filter by Detroit region, in-stock items, selling now, and volunteer opportunities, and open detailed stall cards from the list or map."},
     {"title":"Farm operations", "body":"Update farm details and selling schedules, add or edit inventory, select standardized units, adjust quantity and price, and mark produce sold out."},
     {"title":"Volunteer coordination", "body":"Publish opportunities with a description, date, and volunteer count. Mobile form refinements include persistent labels, wider fields, aligned controls, and a 500-character description limit."},
+    {"title":"Private growing workspace", "body":"Members can record dated crop plans and harvests. The plot planner adds irregular physical boundaries, movable crop layers, explicit units, and saved layout revisions, enabled by migration 010. Growing records stay private and do not automatically become public inventory or volunteer posts."},
     {"title":"Product feedback", "body":"Capture page and element context with feedback, review saved notes, and export CSV backups for product review."}
   ],
   "stack": [
@@ -49,7 +50,6 @@
   "next": [
     "Confirm farmer email login and configure email delivery suitable for the pilot.",
     "Run live direct-API permission tests for unrelated T1 access, T2 mutation attempts, and role escalation.",
-    "Remove temporary Owner and Director Q code login before the larger demo; revoke beta sessions and retire older deployments.",
     "Observe an initial farmer cohort and measure onboarding completion, time to first inventory update, task completion, and information freshness.",
     "Add guided farmer onboarding and address geocoding; review map-service capacity and rehearse database restoration."
   ],

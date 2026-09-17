@@ -1,6 +1,6 @@
 # Recruiter page setup
 
-The new page will be at https://detroit-root-network.vercel.app/recruiter after deployment. It presents the technical case study and public discovery link. It is not a farmer/Owner/Director account and cannot edit farm records. The five-digit code is a convenience gate for shareable portfolio information; do not put confidential content behind it.
+The new page will be at https://detroit-root-network.vercel.app/design-journey after deployment. It presents the technical case study and public discovery link. It is not a farmer/Owner/Director account and cannot edit farm records. The five-digit code is a convenience gate for shareable portfolio information; do not put confidential content behind it.
 
 ## 1 Apply migration 006
 
@@ -78,3 +78,6 @@ The technical Word brief is in docs/Detroit-Root-Network-Technical-Project-Brief
 Review the competition wording and both people's contributions before public distribution. The content explicitly identifies AI-assisted development, user-reported beta checks, planned farmer participation, and the remaining email/RLS validation work. It does not claim measured community impact or unperformed research.
 
 Reminder: remove temporary Owner/Director Q code login before the larger demo, as documented in README.md. This separate portfolio gate does not replace that requirement.
+# Design Journey URL update
+
+The presentation is now called **Design Journey** at `/design-journey`. The old `/recruiter` URL redirects there. Navigation places Design Journey before Director Q. Existing `RECRUITER_*` variables, the enable switch, and the five-digit access code are unchanged. The internal authentication endpoint remains `/api/auth/recruiter`; its login/logout redirects and cookie path now target `/design-journey`. People with an old path-scoped session may need to enter the same code again.

@@ -6,7 +6,7 @@ import { codeMatches, issueRecruiterSession, recruiterConfig, recruiterCookie, s
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 function go(request: NextRequest, result = "") {
- const response = NextResponse.redirect(new URL(`/recruiter${result ? `?result=${result}` : ""}`,request.url),303);
+ const response = NextResponse.redirect(new URL(`/design-journey${result ? `?result=${result}` : ""}`,request.url),303);
  response.headers.set("Cache-Control","no-store");
  return response;
 }
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
    if(size>256){await reader.cancel(); return go(request,"invalid");} chunks.push(value); }
   const form=new URLSearchParams(Buffer.concat(chunks).toString("utf8"));
   if(form.get("action")==="logout") {
-   const response=go(request); response.cookies.set(recruiterCookie,"",{path:"/recruiter",maxAge:0,httpOnly:true,sameSite:"lax",secure:origin.startsWith("https://")}); return response;
+   const response=go(request); response.cookies.set(recruiterCookie,"",{path:"/design-journey",maxAge:0,httpOnly:true,sameSite:"lax",secure:origin.startsWith("https://")}); return response;
   }
   const config=recruiterConfig(); if(!config) return go(request,"unavailable");
   const code=form.get("code"); if(!code || !/^\d{5}$/.test(code)) return go(request,"invalid");
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
   if(data!==true) return go(request,"limited");
   if(!codeMatches(code,config.code)) return go(request,"invalid");
   const response=go(request);
-  response.cookies.set(recruiterCookie,issueRecruiterSession(config),{httpOnly:true,secure:origin.startsWith("https://"),sameSite:"lax",path:"/recruiter",maxAge:sessionSeconds});
+  response.cookies.set(recruiterCookie,issueRecruiterSession(config),{httpOnly:true,secure:origin.startsWith("https://"),sameSite:"lax",path:"/design-journey",maxAge:sessionSeconds});
   return response;
  } catch { return go(request,"unavailable"); }
 }

@@ -284,6 +284,11 @@ const isSellingNow = (place: Place, date: Date) => {
 };
 
 export default function Home() {
+  const [plannerDirty, setPlannerDirty] = useState(false);
+  function leavePlanner() {
+    if (plannerDirty && !window.confirm("Discard unsaved plot layout changes?")) return false;
+    setPlannerDirty(false); return true;
+  }
   const [farms, setFarms] = useState<Farm[]>(demos),
     [open, setOpen] = useState<Farm | null>(null),
     [tab, setTab] = useState<"find" | "farmer" | "feedback">("find"),
@@ -421,17 +426,17 @@ export default function Home() {
   return (
     <main>
       <header>
-        <button className="brand" onClick={() => setTab("find")}>
+        <button className="brand" onClick={() => { if (leavePlanner()) setTab("find"); }}>
           <b>DR</b>
           <span>
             Detroit Root Network<small>Fresh food, clearly connected</small>
           </span>
         </button>
         <nav>
-          {user && <button onClick={async () => { await db?.auth.signOut(); setUser(null); setNotes([]); }}>Sign out</button>}
+          {user && <button onClick={async () => { if (!leavePlanner()) return; await db?.auth.signOut(); setUser(null); setNotes([]); }}>Sign out</button>}
           <button
             className={tab === "find" ? "on" : ""}
-            onClick={() => setTab("find")}
+            onClick={() => { if (leavePlanner()) setTab("find"); }}
           >
             Find food
           </button>
@@ -441,10 +446,11 @@ export default function Home() {
           >
             Farmer tools
           </button>
-          <Link href="/mission" style={{ color: "inherit", padding: "10px 12px" }}>Our mission</Link>
+          <Link onClick={e => { if (!leavePlanner()) e.preventDefault(); }} href="/mission" style={{ color: "inherit", padding: "10px 12px" }}>Our mission</Link>
+          <Link onClick={e => { if (!leavePlanner()) e.preventDefault(); }} href="/design-journey" style={{ color: "inherit", padding: "10px 12px" }}>Design Journey</Link>
           <button
             className={tab === "feedback" ? "on" : ""}
-            onClick={() => setTab("feedback")}
+            onClick={() => { if (leavePlanner()) setTab("feedback"); }}
           >
             Director Q
           </button>
@@ -589,6 +595,8 @@ export default function Home() {
               farms={farms}
               reload={load}
               setNotice={setNotice}
+              plannerDirty={plannerDirty}
+              onPlannerDirty={setPlannerDirty}
             />
           )}
         </Workspace>
@@ -616,6 +624,7 @@ export default function Home() {
                       "Vendor card",
                       "Map",
                       "Farmer inventory",
+                      "Plot planner",
                       "Volunteer form",
                       "Mobile layout",
                       "Director Q page",
