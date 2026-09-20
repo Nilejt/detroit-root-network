@@ -458,7 +458,7 @@ export default function Home() {
     link.href = URL.createObjectURL(
       new Blob([csv], { type: "text/csv;charset=utf-8" }),
     );
-    link.download = `director-q-feedback-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `drn-admin-feedback-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(link.href);
   };
@@ -657,7 +657,7 @@ export default function Home() {
                       "Plot planner",
                       "Volunteer form",
                       "Mobile layout",
-                      "Director Q page",
+                      "Admin page",
                     ].map((x) => (
                       <option key={x}>{x}</option>
                     ))}

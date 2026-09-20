@@ -29,15 +29,15 @@
     {"title":"Release to production", "steps":["Requirements and acceptance criteria guide a scoped change.","Lint, authentication tests, and the production build run locally.","Selected files are committed and pushed to GitHub main.","Vercel builds the deployment; environment changes require redeployment.","The team validates the live workflow and permissions."]}
   ],
   "configuration": [
-    ["Supabase", "Confirmed existing identities; applied migration 005; verified Owner and Director Q profile roles; configured production Site URL and the email callback redirect. Q's Stall membership and cross-T1 policies are included in the migration."],
+    ["Supabase", "Confirmed existing identities; applied migration 005; verified platform operator roles; configured the production Site URL and email callback redirect. Q's Stall membership and cross-T1 policies are included in the migration."],
     ["Vercel", "Configured public Supabase connection values and private server variables; enabled a temporary beta-login kill switch; published a firewall rate-limit rule before enabling code access."],
     ["GitHub and PowerShell", "Used the existing repository and main branch; staged specific deployment files; ran validation and pushed commit 8175d66 for the beta-authentication release."],
     ["Database recovery", "Installed PostgreSQL command-line tools, created a database archive through the session pooler, and successfully listed the archive before applying the migration. A full restore rehearsal remains a next step."]
   ],
   "decisions": [
-    {"title":"Roles are enforced in the database", "body":"Owner and Director Q can work across T1 stalls, while farmers use membership-based access. A hidden button is not treated as an authorization control."},
+    {"title":"Roles are enforced in the database", "body":"Owners and Admins can work across T1 stalls, while farmers use membership-based access. A hidden button is not treated as an authorization control."},
     {"title":"Editable trials and discovery fixtures are separated", "body":"T1 stalls support operational testing. T2 stalls populate discovery without permitting app users to modify those records, even by changing tiers or moving child records."},
-    {"title":"Temporary convenience has an exit requirement", "body":"Owner and Director Q beta codes are validated on the server and exchanged for normal Supabase sessions. Codes remain private configuration, and the entire code-login pathway must be removed before a larger demo."},
+    {"title":"Temporary convenience has an exit requirement", "body":"Named Owner beta codes are validated on the server and exchanged for normal Supabase sessions. Codes remain private configuration, and the entire code-login pathway must be removed before a larger demo."},
     {"title":"Human judgment directs agentic development", "body":"AI tools helped produce and revise implementation, tests, SQL, and deployment instructions. The project team set the scope, evaluated the experience, configured services, and accepted or corrected the results."}
   ],
   "v2Approved": [
@@ -63,7 +63,7 @@
   "evidence": [
     ["Deployed beta", "Vercel deployment reached Ready, and the project owner reported successful beta-code login and satisfactory access checks."],
     ["Automated checks", "The beta-authentication release passed lint, a production build, and eight route tests covering failed and successful authentication boundaries. These tests mock Supabase; they are not a complete live RLS audit."],
-    ["Database configuration", "Migration 005 completed successfully. Owner and Director Q roles were confirmed in the profiles table."],
+    ["Database configuration", "Migration 005 completed successfully. Platform operator roles were confirmed in the profiles table; V2 promotes both project leads to Owner."],
     ["Email authentication", "The production Site URL and callback allowlist were corrected after a failed return and email rate-limit error. A successful post-correction email sign-in still needs confirmation."],
     ["Pilot readiness", "A pilot of up to 15 farmers is planned. No adoption, revenue, yield, or food-access impact metrics are claimed yet."]
   ],

@@ -86,7 +86,7 @@ export default function MissionEditor({ id, children, className, initial = null 
   return <section className={className} id={id}>
     <div ref={content}>{published?.title && published.body ? <>{id === "hero" ? <h1>{published.title}</h1> : <h2>{published.title}</h2>}{published.body.split(/\n\s*\n/).map((p, i) => <p key={i} style={{ whiteSpace: "pre-wrap" }}>{p}</p>)}</> : children}</div>
     {operator && <div className={styles.editor}>
-      <p>Private editorial workspace · {role === "owner" ? "Owner" : "Director Q"}</p>
+      <p>Private editorial workspace · {role === "owner" ? "Owner" : "Admin"}</p>
       {!ready ? <p>Mission editing is unavailable. Apply migration 007 and reload.</p> : <>
         <button type="button" onClick={begin} disabled={busy || editing}>Suggest an edit</button>
         {editing && <form onSubmit={submit}>
