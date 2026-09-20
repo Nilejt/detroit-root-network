@@ -243,14 +243,20 @@ export default function FarmerTools({
     const f = new FormData(e.currentTarget),
       quantity = Number(f.get("quantity")),
       price = Math.round(Number(f.get("price")) * 100);
+    const status = String(f.get("status"));
+    const expectedAvailableOn = String(f.get("expected_available_on") ?? "");
+    if (status === "coming_soon" && !expectedAvailableOn) {
+      setNotice("Choose an expected availability date for coming-soon produce.");
+      return;
+    }
     const { error } = await db.from("inventory_items").insert({
       farm_id: farm.id,
       item_name: f.get("item_name"),
       quantity,
       unit: f.get("unit"),
       price_cents: price,
-      stock_status: f.get("status") === "coming_soon" ? "coming_soon" : quantity === 0 ? "sold_out" : "available",
-      expected_available_on: f.get("expected_available_on") || null,
+      stock_status: status === "coming_soon" ? "coming_soon" : quantity === 0 ? "sold_out" : "available",
+      expected_available_on: expectedAvailableOn || null,
       publish_coming_soon: f.get("publish_coming_soon") === "on",
       show_expected_date: f.get("show_expected_date") === "on",
       is_visible: farm.test_tier === "T1",
@@ -266,14 +272,20 @@ export default function FarmerTools({
     if (!db || !editing || !farm?.inventory_items.some((item) => item.id === editing.id)) return;
     const f = new FormData(e.currentTarget),
       quantity = Number(f.get("quantity"));
+    const status = String(f.get("status"));
+    const expectedAvailableOn = String(f.get("expected_available_on") ?? "");
+    if (status === "coming_soon" && !expectedAvailableOn) {
+      setNotice("Choose an expected availability date for coming-soon produce.");
+      return;
+    }
     const { error } = await db
       .from("inventory_items")
       .update({
         quantity,
         unit: f.get("unit"),
         price_cents: Math.round(Number(f.get("price")) * 100),
-        stock_status: f.get("status") === "coming_soon" ? "coming_soon" : quantity === 0 ? "sold_out" : f.get("status"),
-        expected_available_on: f.get("expected_available_on") || null,
+        stock_status: status === "coming_soon" ? "coming_soon" : quantity === 0 ? "sold_out" : status,
+        expected_available_on: expectedAvailableOn || null,
         publish_coming_soon: f.get("publish_coming_soon") === "on",
         show_expected_date: f.get("show_expected_date") === "on",
       })

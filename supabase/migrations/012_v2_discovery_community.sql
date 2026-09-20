@@ -19,6 +19,16 @@ alter table public.inventory_items add column if not exists expected_available_o
 alter table public.inventory_items add column if not exists publish_coming_soon boolean not null default false;
 alter table public.inventory_items add column if not exists show_expected_date boolean not null default false;
 
+-- Earlier DRN schemas called this field expected_date. Preserve those values,
+-- then move the coming-soon invariant to the V2 field used by the application.
+update public.inventory_items
+set expected_available_on = expected_date::date
+where expected_available_on is null and expected_date is not null;
+alter table public.inventory_items drop constraint if exists inventory_items_check;
+alter table public.inventory_items add constraint inventory_items_check check (
+  stock_status <> 'coming_soon'::public.stock_status or expected_available_on is not null
+);
+
 create table if not exists public.community_events (
   id uuid primary key default gen_random_uuid(),
   farm_id uuid references public.farms(id) on delete cascade,
