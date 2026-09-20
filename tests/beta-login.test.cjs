@@ -62,8 +62,8 @@ test('Owner receives only ordinary session cookie, no token/code JSON', async ()
  assert.equal(response.headers.get('cache-control'), 'no-store');
  assert.deepEqual(await response.json(), { message: 'Signed in.' }); assert.ok(calls.includes('verify'));
 });
-test('Director Q maps only to Q identity and role', async () => {
- reset(); role = 'director_q'; identityEmail = 'qhamilton@gmail.com'; identityId = 'q-id';
+test('Quinn owner account maps only to Q identity and owner role', async () => {
+ reset(); role = 'owner'; identityEmail = 'qhamilton@gmail.com'; identityId = 'q-id';
  assert.equal((await post({ account: 'director_q', code: 'b'.repeat(64) })).status, 200);
 });
 test('verification failure discards staged session cookies', async () => {

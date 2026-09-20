@@ -30,9 +30,9 @@ export default function BetaLogin() {
   }
   if (!enabled) return null;
   return <form className="panel login" onSubmit={signIn}>
-    <h2>Owner / Director Q beta access</h2>
+    <h2>Platform owner beta access</h2>
     <p><strong>Temporary private beta only. Code login must be removed before a larger demo.</strong></p>
-    <label>Account<select name="account"><option value="owner">Owner</option><option value="director_q">Director Q</option></select></label>
+    <label>Account<select name="account"><option value="owner">Nile · Owner</option><option value="director_q">Quinn · Owner</option></select></label>
     <label>Private access code<input name="code" type="password" required minLength={64} maxLength={64} autoComplete="off" spellCheck={false} autoCapitalize="none" /></label>
     <button className="primary" disabled={busy}>{busy ? "Signing in…" : "Sign in with beta code"}</button>
     <p role="status">{message}</p>

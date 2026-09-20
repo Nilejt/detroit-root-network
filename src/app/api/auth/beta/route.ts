@@ -64,7 +64,9 @@ export async function POST(request: NextRequest) {
     if (identityError || identity.user?.email?.toLowerCase() !== email || !identity.user.email_confirmed_at)
       return reply(503, "Beta login is unavailable.");
     const { data: profile, error: profileError } = await admin.from("profiles").select("role").eq("id", id).single();
-    if (profileError || profile?.role !== body.account) return reply(503, "Beta login is unavailable.");
+    // Both named beta accounts are platform owners. The legacy account key is
+    // retained only so existing private environment-variable names still work.
+    if (profileError || profile?.role !== "owner") return reply(503, "Beta login is unavailable.");
     const { data: link, error: linkError } = await admin.auth.admin.generateLink({ type: "magiclink", email });
     if (linkError || link.user.id !== id) return reply(503, "Beta login is unavailable.");
     const response = reply(200, "Signed in.");

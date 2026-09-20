@@ -8,6 +8,17 @@ import DetroitMap from "./detroit-map";
 import BetaLogin from "./beta-login";
 import Link from "next/link";
 import MissionFeedback from "./mission/mission-feedback";
+import CommunityBoard from "./community-board";
+import AlertSignup from "./alert-signup";
+import PartnerTools from "./partner-tools";
+import {
+  matchesNutritionObjective,
+  nutritionForProduce,
+  nutritionObjectives,
+  nutritionSources,
+  objectiveLabel,
+  type NutritionObjective,
+} from "@/lib/nutrition";
 
 type Item = {
   id: string;
@@ -16,6 +27,9 @@ type Item = {
   unit: string;
   price_cents: number | null;
   stock_status: string;
+  expected_available_on?: string | null;
+  publish_coming_soon?: boolean;
+  show_expected_date?: boolean;
 };
 type Place = {
   id: string;
@@ -27,6 +41,7 @@ type Place = {
   opens_at: string | null;
   closes_at: string | null;
   is_active: boolean;
+  is_self_service?: boolean;
 };
 type Help = {
   id: string;
@@ -291,11 +306,15 @@ export default function Home() {
   }
   const [farms, setFarms] = useState<Farm[]>(demos),
     [open, setOpen] = useState<Farm | null>(null),
-    [tab, setTab] = useState<"find" | "farmer" | "feedback">("find"),
+    [tab, setTab] = useState<"find" | "community" | "farmer" | "partner" | "feedback">("find"),
     [filter, setFilter] = useState("all"),
     [search, setSearch] = useState(""),
     [region, setRegion] = useState("all"),
-    [now, setNow] = useState(() => new Date());
+    [now, setNow] = useState(() => new Date()),
+    [nutrition, setNutrition] = useState<NutritionObjective | "all">("all"),
+    [mobileMenu, setMobileMenu] = useState(false),
+    [routeOpen, setRouteOpen] = useState(false),
+    [routeSort, setRouteSort] = useState<"matches" | "closest">("matches");
   const [user, setUser] = useState<User | null>(null),
     [email, setEmail] = useState(""),
     [notice, setNotice] = useState(""),
@@ -364,9 +383,15 @@ export default function Home() {
             (filter === "help" &&
               f.volunteer_opportunities.some((v) => v.is_open)))
         );
+      }).sort((a, b) => {
+        if (nutrition === "all") return a.name.localeCompare(b.name);
+        const score = (farm: Farm) => farm.inventory_items.filter(item => item.quantity > 0 && ["available", "low_stock"].includes(item.stock_status) && matchesNutritionObjective(item.item_name, nutrition)).length;
+        return score(b) - score(a) || Number(b.selling_locations.some(place => isSellingNow(place, now))) - Number(a.selling_locations.some(place => isSellingNow(place, now))) || a.name.localeCompare(b.name);
       }),
-    [farms, filter, search, region, now],
+    [farms, filter, search, region, now, nutrition],
   );
+  const nutritionProduce = useMemo(() => nutrition === "all" ? [] : Array.from(new Set(shown.flatMap(farm => farm.inventory_items.filter(item => item.quantity > 0 && ["available", "low_stock"].includes(item.stock_status) && matchesNutritionObjective(item.item_name, nutrition)).map(item => item.item_name)))).sort(), [shown, nutrition]);
+  const routeFarms = useMemo(() => nutrition === "all" ? [] : shown.filter(farm => farm.inventory_items.some(item => item.quantity > 0 && ["available", "low_stock"].includes(item.stock_status) && matchesNutritionObjective(item.item_name, nutrition))).slice(0, routeSort === "matches" ? 4 : 3), [shown, nutrition, routeSort]);
   const signIn = async (e: FormEvent) => {
     e.preventDefault();
     if (!db) return setNotice("Supabase is not configured.");
@@ -432,17 +457,20 @@ export default function Home() {
             Detroit Root Network<small>Fresh food, clearly connected</small>
           </span>
         </button>
-        <nav>
+        <button className="menu-toggle" aria-expanded={mobileMenu} aria-controls="primary-nav" onClick={() => setMobileMenu(value => !value)}><span aria-hidden="true">☰</span><span>Menu</span></button>
+        <nav id="primary-nav" className={mobileMenu ? "menu-open" : ""}>
           {user && <button onClick={async () => { if (!leavePlanner()) return; await db?.auth.signOut(); setUser(null); setNotes([]); }}>Sign out</button>}
           <button
             className={tab === "find" ? "on" : ""}
-            onClick={() => { if (leavePlanner()) setTab("find"); }}
+            onClick={() => { if (leavePlanner()) { setTab("find"); setMobileMenu(false); } }}
           >
             Find food
           </button>
+          <button className={tab === "community" ? "on" : ""} onClick={() => { if (leavePlanner()) { setTab("community"); setMobileMenu(false); } }}>Community Board</button>
+          {user && <button className={tab === "partner" ? "on" : ""} onClick={() => { if (leavePlanner()) { setTab("partner"); setMobileMenu(false); } }}>Partner tools</button>}
           <button
             className={tab === "farmer" ? "on" : ""}
-            onClick={() => setTab("farmer")}
+            onClick={() => { setTab("farmer"); setMobileMenu(false); }}
           >
             Farmer tools
           </button>
@@ -452,7 +480,7 @@ export default function Home() {
             className={tab === "feedback" ? "on" : ""}
             onClick={() => { if (leavePlanner()) setTab("feedback"); }}
           >
-            Director Q
+            Admin
           </button>
         </nav>
       </header>
@@ -460,35 +488,6 @@ export default function Home() {
         <div className="notice">
           {notice}
           <button onClick={() => setNotice("")}>×</button>
-        </div>
-      )}
-      {tab === "find" && (
-        <div className="findtools">
-          <label>
-            <span>Search</span>
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Try tomatoes, greens, or a farm name"
-            />
-          </label>
-          <label>
-            <span>Region</span>
-            <select value={region} onChange={(e) => setRegion(e.target.value)}>
-              <option value="all">All Detroit regions</option>
-              {[
-                "Downtown",
-                "Midtown",
-                "North End/New Center",
-                "West",
-                "Southwest",
-                "East",
-              ].map((r) => (
-                <option key={r}>{r}</option>
-              ))}
-            </select>
-          </label>
         </div>
       )}
       {tab === "find" && (
@@ -519,6 +518,13 @@ export default function Home() {
               ))}
             </div>
           </div>
+          <div className="findtools compact-search">
+            <label className="search-field"><span>Search farms or produce</span><input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Try tomatoes, greens, or a farm name" /></label>
+            <label><span>Nutrition objective</span><select value={nutrition} onChange={(e) => { setNutrition(e.target.value as NutritionObjective | "all"); setRouteOpen(false); }}><option value="all">All produce</option>{nutritionObjectives.map(objective => <option key={objective.id} value={objective.id}>{objective.label}</option>)}</select></label>
+            <label><span>Region</span><select value={region} onChange={(e) => setRegion(e.target.value)}><option value="all">All Detroit regions</option>{["Downtown","Midtown","North End/New Center","West","Southwest","East"].map((r) => <option key={r}>{r}</option>)}</select></label>
+          </div>
+          {nutrition !== "all" && <div className="nutrition-context"><div><p className="eyebrow">PRODUCE MATCHING YOUR OBJECTIVE</p><h2>{nutritionObjectives.find(item => item.id === nutrition)?.label}</h2><div className="chips">{nutritionProduce.length ? nutritionProduce.map(item => <span key={item}>{item}</span>) : <span>No current matches</span>}</div></div><button className="quiet" onClick={() => setNutrition("all")}>Clear objective</button><p className="nutrition-disclaimer">These results use recognized nutrition sources for general food discovery and education—not diagnosis, treatment, or individualized medical advice. Nutrition needs vary by person.</p></div>}
+          {nutrition !== "all" && routeFarms.length >= 3 && <div className="route-root"><div><p className="eyebrow">ROOT ROUTE · BASIC DEMO</p><h2>Plan a path across {routeFarms.length} matching farms</h2><p>Build a simple trip from farms with currently available matching produce.</p></div><button className="primary" onClick={() => setRouteOpen(value => !value)}>{routeOpen ? "Hide route" : "Build Root Route"}</button>{routeOpen && <div className="route-plan"><label>Prioritize<select value={routeSort} onChange={e => setRouteSort(e.target.value as "matches" | "closest")}><option value="matches">Most matching produce</option><option value="closest">Closest demo sequence</option></select></label><ol>{routeFarms.map((farm, index) => <li key={farm.id}><b>{index + 1}. {farm.name}</b><span>{farm.inventory_items.filter(item => item.quantity > 0 && matchesNutritionObjective(item.item_name, nutrition)).map(item => item.item_name).join(", ")}</span></li>)}</ol><a className="primary" target="_blank" rel="noreferrer" href={`https://www.google.com/maps/dir/${routeFarms.map(farm => encodeURIComponent(`${farm.selling_locations[0]?.address ?? farm.base_address ?? "Detroit"}, Detroit, MI`)).join("/")}`}>Open multi-stop directions ↗</a></div>}</div>}
           <div className="grid">
             <div className="cards">
               {shown.map((f) => {
@@ -531,7 +537,10 @@ export default function Home() {
                   ),
                   stock = f.inventory_items.filter((i) =>
                     i.quantity > 0 && ["available", "low_stock"].includes(i.stock_status),
-                  );
+                  ),
+                  matchingStock = nutrition === "all" ? [] : stock.filter(item => matchesNutritionObjective(item.item_name, nutrition)),
+                  otherStock = nutrition === "all" ? stock : stock.filter(item => !matchesNutritionObjective(item.item_name, nutrition)),
+                  comingSoon = f.inventory_items.filter(item => item.stock_status === "coming_soon" && item.publish_coming_soon !== false);
                 return (
                   <button
                     className="card"
@@ -550,6 +559,7 @@ export default function Home() {
                       </span>
                     </div>
                     <h2>{f.name}</h2>
+                    {nutrition !== "all" && matchingStock.length > 0 && <p className="nutrition-badge">{objectiveLabel(nutrition)} · {matchingStock.length} match{matchingStock.length === 1 ? "" : "es"}</p>}
                     {p && (
                       <div className="place">
                         <b>{p.location_name}</b>
@@ -557,18 +567,20 @@ export default function Home() {
                           {p.address}
                         </span>
                         <span>{p.selling_date || "Selling date not provided"} · {p.opens_at && p.closes_at ? `${clock(p.opens_at)}–${clock(p.closes_at)}` : "Hours not provided"}</span>
+                        {p.is_self_service && <span className="self-service">Self-service farm stand</span>}
                       </div>
                     )}
                     {!p && <div className="place">Selling location and hours not provided.</div>}
                     <p className="produce-label">Available produce</p>
                     <div className="chips">
-                      {stock.map((i) => (
+                      {[...matchingStock, ...otherStock].map((i) => (
                         <span key={i.id}>
                           {i.item_name} <b>{cash(i.price_cents)}</b>
                         </span>
                       ))}
                     </div>
                     {!stock.length && <p className="availability-empty">No produce currently listed as available.</p>}
+                    {comingSoon.length > 0 && <div className="coming-soon-list">{comingSoon.map(item => <span key={item.id}><b>{item.item_name}</b> · Coming Soon{item.show_expected_date && item.expected_available_on ? ` · ${new Date(`${item.expected_available_on}T12:00:00`).toLocaleDateString()}` : ""}</span>)}</div>}
                     <footer>
                       <span>Farm story, payment & volunteer details</span>
                       <b>View details →</b>
@@ -577,10 +589,13 @@ export default function Home() {
                 );
               })}
             </div>
-            <DetroitMap farms={shown} onSelect={selectFarm} />
+            <DetroitMap farms={nutrition === "all" ? shown : shown.filter(farm => farm.inventory_items.some(item => item.quantity > 0 && ["available", "low_stock"].includes(item.stock_status) && matchesNutritionObjective(item.item_name, nutrition)))} onSelect={selectFarm} />
           </div>
+          <AlertSignup />
         </section>
       )}
+      {tab === "community" && <CommunityBoard />}
+      {tab === "partner" && (user && db ? <PartnerTools db={db} user={user} setNotice={setNotice} /> : null)}
       {tab === "farmer" && (
         <Workspace
           title="Keep today’s information accurate"
@@ -737,13 +752,15 @@ export default function Home() {
             <div className="block">
               <h3>Available produce</h3>
               {open.inventory_items.map((i) => (
-                <div className="item" key={i.id}>
+                <div className={`item ${i.stock_status === "coming_soon" ? "coming-soon-item" : ""}`} key={i.id}>
                   <span>
                     <b>{i.item_name}</b>
                     <small>
                       {i.quantity} {i.unit} ·{" "}
                       {i.stock_status.replaceAll("_", " ")}
+                      {i.stock_status === "coming_soon" && i.show_expected_date && i.expected_available_on ? ` · Expected ${new Date(`${i.expected_available_on}T12:00:00`).toLocaleDateString()}` : ""}
                     </small>
+                    {nutritionForProduce(i.item_name) && <small>{nutritionForProduce(i.item_name)?.attributes.slice(0, 3).join(" · ")}</small>}
                   </span>
                   <b>{cash(i.price_cents)}</b>
                 </div>
@@ -766,6 +783,7 @@ export default function Home() {
           </section>
         </div>
       )}
+      {tab === "find" && nutrition !== "all" && <section className="shell source-note"><details><summary>How nutrition matches are sourced</summary><p>DRN combines standardized produce records with general guidance from recognized nutrition organizations. The demonstration taxonomy is versioned and intentionally conservative.</p><ul>{nutritionSources.map(([name, href]) => <li key={name}><a href={href} target="_blank" rel="noreferrer">{name} ↗</a></li>)}</ul></details></section>}
     </main>
   );
 }

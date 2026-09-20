@@ -5,7 +5,7 @@
   "pitch": "Detroit Root Network starts with a practical question: where can someone find locally grown food, and is the information current enough to act on? We built a shared discovery experience and a simple operations workspace so growers can maintain the information customers need. The project demonstrates how product leadership, technical business analysis, program management, and UX research can guide AI-assisted development from requirements through a working cloud deployment. The next step is a controlled farmer pilot to measure whether the workflows improve information freshness and ease of use.",
   "people": [
     {"name":"Nile", "role":"Senior Project Manager and Technical Business Analyst", "contribution":"Led product scope and acceptance decisions, translated operational needs into requirements, directed AI-assisted implementation, and configured and validated the deployment across GitHub, Vercel, and Supabase."},
-    {"name":"Quinn", "role":"Technical Program Manager and UX Researcher", "contribution":"Originated the idea for Detroit Root Network in response to needs farmers shared with her directly. As she transitions from tech into urban agriculture full time, Quinn brings her program management and UX research experience to addressing those gaps in the field. Nile translated her idea and those farmer needs into this working product. Quinn grounds the project in farmer perspectives and supports cross-farm review, contextual feedback, and planned testing with farmers in her network."}
+    {"name":"Quinn", "role":"Platform Owner, Technical Program Manager and UX Researcher", "contribution":"Originated the idea for Detroit Root Network in response to needs farmers shared with her directly. Quinn shares platform-owner access with Nile, grounds the project in farmer perspectives, and leads contextual feedback and planned testing with growers in her network."}
   ],
   "capabilities": [
     {"title":"Food discovery", "body":"Search farms and produce, filter by Detroit region, in-stock items, selling now, and volunteer opportunities, and open detailed stall cards from the list or map."},
@@ -39,6 +39,26 @@
     {"title":"Editable trials and discovery fixtures are separated", "body":"T1 stalls support operational testing. T2 stalls populate discovery without permitting app users to modify those records, even by changing tiers or moving child records."},
     {"title":"Temporary convenience has an exit requirement", "body":"Owner and Director Q beta codes are validated on the server and exchanged for normal Supabase sessions. Codes remain private configuration, and the entire code-login pathway must be removed before a larger demo."},
     {"title":"Human judgment directs agentic development", "body":"AI tools helped produce and revise implementation, tests, SQL, and deployment instructions. The project team set the scope, evaluated the experience, configured services, and accepted or corrected the results."}
+  ],
+  "v2Approved": [
+    ["Discovery", "Mobile navigation, compact search, nutrition-objective sorting, visible supporting produce, self-service stands, public coming-soon harvests, and a basic Root Route when three or more farms match."],
+    ["Community", "A read-only Community Board combines verified farm and health-partner events. Detroiters may save interest without creating public posts or entering free-text comments."],
+    ["Operations", "Farmers can publish events, mark self-service stands, and decide whether an upcoming item and its expected date are public. Alert architecture favors aggregated updates; SMS remains a clearly labeled demo."],
+    ["Responsible nutrition", "A conservative, versioned produce taxonomy uses recognized sources and supports—not diagnoses or treats—nutrition objectives. Community partners will validate live-market guidance in a later release."]
+  ],
+  "engineeringStandards": [
+    ["Readable by humans", "Use descriptive names, small focused components, explicit types at system boundaries, and comments that explain why a rule exists—not what an obvious line does."],
+    ["Safe by default", "Authorization belongs in Supabase RLS and triggers, secrets remain server-side or in deployment configuration, and public text is escaped or rendered as text."],
+    ["Accessible and responsive", "Use semantic labels, keyboard focus states, 44–48 pixel touch targets, mobile-first layouts, and plain-language status feedback."],
+    ["Verifiable releases", "Every package must pass lint, TypeScript production build, and focused tests. Database changes are additive, ordered migrations with rollback or recovery notes."],
+    ["Honest product evidence", "Demo records remain labeled, implemented capability is separated from planned work, and no health, adoption, or community-impact outcome is claimed before measurement."]
+  ],
+  "decisionArtifacts": [
+    ["AGENTS.md", "Repository-wide implementation, security, readability, and handoff rules for human and AI contributors."],
+    ["docs/adr/", "Short architecture decision records for choices with lasting tradeoffs, including nutrition tagging, anonymous interest, mapping, and role boundaries."],
+    ["docs/V2-IMPLEMENTATION-BRIEF.md", "Approved scope, acceptance boundaries, sources, data changes, and deferred work."],
+    ["supabase/migrations/", "Ordered, reviewable data and authorization changes; migration 012 contains the V2 Community Board and discovery fields."],
+    ["Git history and release notes", "A trace from an approved requirement to a reviewed code change, verification result, and deployed release."]
   ],
   "evidence": [
     ["Deployed beta", "Vercel deployment reached Ready, and the project owner reported successful beta-code login and satisfactory access checks."],

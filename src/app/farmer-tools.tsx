@@ -11,6 +11,9 @@ type Item = {
   unit: string;
   price_cents: number | null;
   stock_status: string;
+  expected_available_on?: string | null;
+  publish_coming_soon?: boolean;
+  show_expected_date?: boolean;
 };
 type Place = {
   id: string;
@@ -22,6 +25,7 @@ type Place = {
   opens_at: string | null;
   closes_at: string | null;
   is_active: boolean;
+  is_self_service?: boolean;
 };
 type Help = {
   id: string;
@@ -170,7 +174,7 @@ export default function FarmerTools({
       const next = p?.role ?? "farmer";
       setRole(next);
       const editable = farms.filter((farm) => farm.test_tier === "T1");
-      if (["owner", "director_q"].includes(next))
+      if (["owner", "admin", "director_q"].includes(next))
         setAllowed(editable.map((farm) => farm.id));
       else {
         const { data: m } = await db
@@ -223,6 +227,7 @@ export default function FarmerTools({
         opens_at: f.get("opens_at") || null,
         closes_at: f.get("closes_at") || null,
         is_active: true,
+        is_self_service: f.get("is_self_service") === "on",
         is_visible: farm.test_tier === "T1",
       };
     const q = location
@@ -244,7 +249,10 @@ export default function FarmerTools({
       quantity,
       unit: f.get("unit"),
       price_cents: price,
-      stock_status: quantity === 0 ? "sold_out" : "available",
+      stock_status: f.get("status") === "coming_soon" ? "coming_soon" : quantity === 0 ? "sold_out" : "available",
+      expected_available_on: f.get("expected_available_on") || null,
+      publish_coming_soon: f.get("publish_coming_soon") === "on",
+      show_expected_date: f.get("show_expected_date") === "on",
       is_visible: farm.test_tier === "T1",
     });
     setNotice(error?.message ?? "Produce added.");
@@ -264,7 +272,10 @@ export default function FarmerTools({
         quantity,
         unit: f.get("unit"),
         price_cents: Math.round(Number(f.get("price")) * 100),
-        stock_status: quantity === 0 ? "sold_out" : f.get("status"),
+        stock_status: f.get("status") === "coming_soon" ? "coming_soon" : quantity === 0 ? "sold_out" : f.get("status"),
+        expected_available_on: f.get("expected_available_on") || null,
+        publish_coming_soon: f.get("publish_coming_soon") === "on",
+        show_expected_date: f.get("show_expected_date") === "on",
       })
       .eq("id", editing.id);
     setNotice(error?.message ?? "Produce updated.");
@@ -316,6 +327,25 @@ export default function FarmerTools({
     setNotice("Volunteer opportunity deleted.");
     reload();
   }
+  async function addEvent(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!db || !farm) return;
+    const fields = new FormData(e.currentTarget);
+    const { error } = await db.from("community_events").insert({
+      farm_id: farm.id,
+      publisher_type: "farm",
+      organization_name: farm.name,
+      event_type: fields.get("event_type"),
+      title: fields.get("event_title"),
+      description: fields.get("event_description"),
+      starts_at: `${fields.get("event_date")}T${fields.get("event_time")}:00`,
+      address: fields.get("event_address"),
+      is_free: fields.get("event_free") === "on",
+      is_published: farm.test_tier === "T1",
+    });
+    setNotice(error?.message ?? "Community Board event posted.");
+    if (!error) e.currentTarget.reset();
+  }
   if (!farm)
     return (
       <div className="panel">
@@ -334,7 +364,7 @@ export default function FarmerTools({
           <span className="tag">{role.replaceAll("_", " ")}</span>
           <b>{user.email}</b>
         </div>
-        {["owner", "director_q"].includes(role) ? (
+        {["owner", "admin", "director_q"].includes(role) ? (
           <label>
             Editable T1 farm
             <select
@@ -449,6 +479,7 @@ export default function FarmerTools({
               />
             </label>
           </div>
+          <label className="checkline"><input type="checkbox" name="is_self_service" defaultChecked={location?.is_self_service ?? false} />This location offers a self-service farm stand</label>
           <button className="primary">Update selling location</button>
         </form>
       </div>
@@ -540,6 +571,9 @@ export default function FarmerTools({
               <option value="sold_out">Sold out</option>
               <option value="coming_soon">Coming soon</option>
             </select>
+            <input type="date" name="expected_available_on" defaultValue={editing.expected_available_on ?? ""} aria-label="Expected availability date" />
+            <label className="checkline"><input type="checkbox" name="publish_coming_soon" defaultChecked={editing.publish_coming_soon ?? false} />Publish upcoming item</label>
+            <label className="checkline"><input type="checkbox" name="show_expected_date" defaultChecked={editing.show_expected_date ?? false} />Show date</label>
             <button className="primary">Save</button>
             <button
               type="button"
@@ -596,6 +630,10 @@ export default function FarmerTools({
             placeholder="Price"
             required
           />
+          <select name="status" defaultValue="available" aria-label="Stock status"><option value="available">Available</option><option value="coming_soon">Coming soon</option></select>
+          <input type="date" name="expected_available_on" aria-label="Expected availability date" />
+          <label className="checkline"><input type="checkbox" name="publish_coming_soon" />Publish upcoming item</label>
+          <label className="checkline"><input type="checkbox" name="show_expected_date" />Show date</label>
           <button className="primary form-submit">Add produce</button>
         </form>
       </section>
@@ -660,6 +698,20 @@ export default function FarmerTools({
           <button className="primary form-submit volunteer-submit">
             Post opportunity
           </button>
+        </form>
+      </section>
+      <section className="panel stock community-publisher">
+        <h2>Community Board event</h2>
+        <p>Verified farms can publish public market dates, harvest days, workshops, tours, food pickups, and learning experiences.</p>
+        <form className="event-form" onSubmit={addEvent}>
+          <label>Event type<select name="event_type" required defaultValue=""><option value="" disabled>Choose type</option><option>Farmers market</option><option>Farm learning</option><option>Volunteer opportunity</option><option>Food pickup</option><option>Workshop</option></select></label>
+          <label>Event title<input name="event_title" required maxLength={120} /></label>
+          <label className="event-description">Description<textarea name="event_description" required maxLength={600} rows={4} /></label>
+          <label>Date<input type="date" name="event_date" required /></label>
+          <label>Start time<input type="time" name="event_time" required /></label>
+          <label>Address<input name="event_address" required maxLength={200} /></label>
+          <label className="checkline"><input type="checkbox" name="event_free" />Free event</label>
+          <button className="primary form-submit">Publish event</button>
         </form>
       </section>
       </div>

@@ -1093,3 +1093,61 @@ h1 {
 
 .grow-planner button:disabled, .grow-harvest button:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
 .planner-entry, .grow-harvest { scroll-margin-top: 110px; }
+
+/* V2 discovery layers stay visually secondary to the core find-food flow. */
+.menu-toggle { display: none; border: 1px solid #8caf9f; border-radius: 999px; padding: 10px 14px; background: transparent; color: white; font-weight: 800; gap: 7px; }
+.compact-search { display: grid; grid-template-columns: minmax(250px, 1.5fr) repeat(2, minmax(180px, .75fr)); gap: 10px; align-items: end; margin: -8px 0 22px; padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; }
+.compact-search label, .event-form label, .alert-signup label { display: grid; gap: 6px; font-weight: 700; font-size: .82rem; }
+.compact-search input, .compact-search select, .event-form input, .event-form select, .event-form textarea, .alert-signup input { width: 100%; min-height: 44px; border: 1px solid #9aab99; border-radius: 9px; padding: 9px 11px; background: white; color: var(--ink); }
+.nutrition-context, .route-root, .alert-signup { margin: 0 0 22px; padding: 20px; border-radius: 18px; border: 1px solid #b7c6af; background: #edf2e8; }
+.nutrition-context { display: grid; grid-template-columns: 1fr auto; gap: 10px 24px; align-items: start; }
+.nutrition-context h2, .route-root h2, .alert-signup h2 { margin-bottom: 7px; }
+.nutrition-context .nutrition-disclaimer { grid-column: 1 / -1; margin: 8px 0 0; font-size: .82rem; line-height: 1.5; color: var(--muted); }
+.nutrition-badge, .self-service { display: inline-flex; width: max-content; max-width: 100%; margin-top: 9px; padding: 5px 9px; border-radius: 999px; background: #dce9d4; color: #244a32; font-size: .72rem; font-weight: 800; }
+.self-service { background: #f4e6ce; color: #73441f; }
+.coming-soon-list { display: grid; gap: 7px; margin: 12px 0; }
+.coming-soon-item { padding: 8px 10px; border: 1px dashed #9da49b; border-radius: 9px; background: #f1f2f0; color: #59605a; font-size: .8rem; }
+.route-root { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 16px; }
+.route-plan { grid-column: 1 / -1; border-top: 1px solid #c8d3c1; padding-top: 16px; }
+.route-plan label { display: grid; width: min(320px, 100%); gap: 6px; font-weight: 700; }
+.route-plan select { min-height: 44px; border: 1px solid #9aab99; border-radius: 9px; padding: 9px; background: white; }
+.route-plan ol { display: grid; gap: 9px; padding-left: 24px; }
+.route-plan li span { display: block; margin-top: 3px; color: var(--muted); font-size: .86rem; }
+.alert-signup { margin-top: 28px; display: grid; grid-template-columns: 1fr 1.2fr; gap: 24px; }
+.alert-signup form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: end; }
+.alert-signup fieldset { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; border: 0; padding: 0; margin: 0; }
+.alert-signup legend { font-weight: 800; margin-bottom: 8px; }
+.alert-signup .checkline, .event-form .checkline, .checkline { display: flex; align-items: center; gap: 9px; }
+.alert-signup .checkline input, .event-form .checkline input, .checkline input { width: 18px; min-height: 18px; }
+.sms-preview { grid-column: 1 / -1; padding: 14px 16px; border-radius: 12px; background: white; border-left: 4px solid var(--bronze); line-height: 1.5; }
+.sms-preview span { display: block; color: var(--muted); font-size: .8rem; margin-top: 5px; }
+.community-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.community-card { display: flex; flex-direction: column; gap: 9px; padding: 18px; border-radius: 16px; border: 1px solid var(--line); background: white; }
+.community-card h2 { font-size: 1.25rem; margin: 0; }
+.community-card p { color: var(--muted); line-height: 1.5; }
+.event-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+.privacy-note, .source-note { color: var(--muted); line-height: 1.55; }
+.event-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.event-form .event-description, .event-form .form-submit { grid-column: 1 / -1; }
+.partner-tools .panel { max-width: 900px; }
+
+@media (max-width: 850px) {
+  header { align-items: center; flex-wrap: wrap; }
+  .menu-toggle { display: inline-flex; }
+  header nav { display: none; width: 100%; border-radius: 14px; padding: 8px; flex-direction: column; align-items: stretch; }
+  header nav.menu-open { display: flex; }
+  header nav button, header nav a { text-align: left; width: 100%; }
+  .compact-search, .alert-signup { grid-template-columns: minmax(0, 1fr); }
+  .alert-signup form { grid-template-columns: minmax(0, 1fr); }
+  .community-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .shell { width: min(100% - 24px, 1180px); padding-top: 30px; }
+  .intro { align-items: stretch; flex-direction: column; }
+  .intro .filters { width: 100%; border-radius: 14px; }
+  .intro .filters button { flex: 1 1 44%; }
+  .nutrition-context, .route-root { grid-template-columns: minmax(0, 1fr); }
+  .nutrition-context .nutrition-disclaimer, .route-plan { grid-column: 1; }
+  .community-grid, .event-form, .alert-signup fieldset { grid-template-columns: minmax(0, 1fr); }
+  .event-form .event-description, .event-form .form-submit { grid-column: 1; }
+}

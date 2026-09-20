@@ -21,6 +21,11 @@ const coordinates: Record<string, [number, number]> = {
   "midtown-market-test": [42.3519, -83.0664],
   "eastside-roots-test": [42.392, -82.951],
   "westside-produce-test": [42.4018, -83.2225],
+  "brightmoor-growing-test": [42.409, -83.224],
+  "corktown-harvest-test": [42.331, -83.075],
+  "jefferson-chalmers-test": [42.366, -82.943],
+  "northwest-greens-test": [42.424, -83.182],
+  "riverbend-roots-test": [42.349, -82.974],
 };
 
 export default function DetroitMap<T extends MapFarm>({
