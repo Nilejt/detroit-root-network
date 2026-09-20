@@ -370,7 +370,8 @@ export default function Home() {
             f.inventory_items.some(
               (i) =>
                 i.item_name.toLowerCase().includes(term) &&
-                ["available", "low_stock"].includes(i.stock_status),
+                (["available", "low_stock"].includes(i.stock_status) ||
+                  (i.stock_status === "coming_soon" && i.publish_coming_soon !== false)),
             )) &&
           (region === "all" || f.region === region) &&
           (filter === "all" ||
@@ -390,6 +391,20 @@ export default function Home() {
       }),
     [farms, filter, search, region, now, nutrition],
   );
+  const searchSuggestions = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return [];
+    const suggestions = new Set<string>();
+    farms.forEach((farm) => {
+      if (farm.name.toLowerCase().includes(term)) suggestions.add(farm.name);
+      farm.inventory_items.forEach((item) => {
+        const isPublicInventory = ["available", "low_stock"].includes(item.stock_status) ||
+          (item.stock_status === "coming_soon" && item.publish_coming_soon !== false);
+        if (isPublicInventory && item.item_name.toLowerCase().includes(term)) suggestions.add(item.item_name);
+      });
+    });
+    return Array.from(suggestions).sort().slice(0, 8);
+  }, [farms, search]);
   const nutritionProduce = useMemo(() => nutrition === "all" ? [] : Array.from(new Set(shown.flatMap(farm => farm.inventory_items.filter(item => item.quantity > 0 && ["available", "low_stock"].includes(item.stock_status) && matchesNutritionObjective(item.item_name, nutrition)).map(item => item.item_name)))).sort(), [shown, nutrition]);
   const routeFarms = useMemo(() => nutrition === "all" ? [] : shown.filter(farm => farm.inventory_items.some(item => item.quantity > 0 && ["available", "low_stock"].includes(item.stock_status) && matchesNutritionObjective(item.item_name, nutrition))).slice(0, routeSort === "matches" ? 4 : 3), [shown, nutrition, routeSort]);
   const signIn = async (e: FormEvent) => {
@@ -519,7 +534,7 @@ export default function Home() {
             </div>
           </div>
           <div className="findtools compact-search">
-            <label className="search-field"><span>Search farms or produce</span><input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Try tomatoes, greens, or a farm name" /></label>
+            <label className="search-field"><span>Search farms or produce</span><input type="search" list="discovery-suggestions" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Try tomatoes, greens, or a farm name" /><datalist id="discovery-suggestions">{searchSuggestions.map(suggestion => <option key={suggestion} value={suggestion} />)}</datalist></label>
             <label><span>Nutrition objective</span><select value={nutrition} onChange={(e) => { setNutrition(e.target.value as NutritionObjective | "all"); setRouteOpen(false); }}><option value="all">All produce</option>{nutritionObjectives.map(objective => <option key={objective.id} value={objective.id}>{objective.label}</option>)}</select></label>
             <label><span>Region</span><select value={region} onChange={(e) => setRegion(e.target.value)}><option value="all">All Detroit regions</option>{["Downtown","Midtown","North End/New Center","West","Southwest","East"].map((r) => <option key={r}>{r}</option>)}</select></label>
           </div>
@@ -580,7 +595,7 @@ export default function Home() {
                       ))}
                     </div>
                     {!stock.length && <p className="availability-empty">No produce currently listed as available.</p>}
-                    {comingSoon.length > 0 && <div className="coming-soon-list">{comingSoon.map(item => <span key={item.id}><b>{item.item_name}</b> · Coming Soon{item.show_expected_date && item.expected_available_on ? ` · ${new Date(`${item.expected_available_on}T12:00:00`).toLocaleDateString()}` : ""}</span>)}</div>}
+                    {comingSoon.length > 0 && <div className="coming-soon-list">{comingSoon.map(item => <span className="coming-soon-item" key={item.id}><b>{item.item_name}</b> · Coming Soon{item.show_expected_date && item.expected_available_on ? ` · ${new Date(`${item.expected_available_on}T12:00:00`).toLocaleDateString()}` : ""}</span>)}</div>}
                     <footer>
                       <span>Farm story, payment & volunteer details</span>
                       <b>View details →</b>
