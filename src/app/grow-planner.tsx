@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import GrowCropForm, { type GrowCrop, type CropSize } from "./grow-crop-form";
-import { colors, fits, footprint, GRID, newLayout, overlaps, rectangle, type CropLayer, type Layout } from "@/lib/grow-layout";
+import { colors, findSpot, MAX_PLOT_LENGTH_FT, MAX_PLOT_WIDTH_FT, newLayout, type CropLayer, type Layout } from "@/lib/grow-layout";
 
 type Saved = { id: string; name: string; revision: number; document: Layout; archived_at?: string | null };
 type Snapshot = { name: string; document: Layout };
@@ -31,16 +31,12 @@ export default function GrowPlanner({ db, farmId, crops, onDirty, onCropSaved, o
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [setupOpen, setSetupOpen] = useState(true);
-  const [mode, setMode] = useState<"select" | "shape" | "move" | "place">("select");
   const [selected, setSelected] = useState("");
-  const [hidden, setHidden] = useState<string[]>([]);
-  const [chooser, setChooser] = useState<string[]>([]);
   const [pending, setPending] = useState<CropLayer | null>(null);
   const [cropPanel, setCropPanel] = useState<CropPanel>("closed");
   const [editCropId, setEditCropId] = useState("");
   const [history, setHistory] = useState<(Saved & { saved_at: string; is_archived?: boolean })[]>([]);
   const [help, setHelp] = useState(false);
-  const gridRef = useRef<HTMLDivElement>(null);
   const entryRef = useRef<HTMLDivElement>(null);
   const layout = draft.document;
   const plotName = draft.name.trim() || "Untitled plot";
@@ -55,8 +51,8 @@ export default function GrowPlanner({ db, farmId, crops, onDirty, onCropSaved, o
   const selectSaved = useCallback((row?: Saved) => {
     setId(row?.id ?? crypto.randomUUID()); setRevision(row?.revision ?? 0);
     setDraft(row ? { name: row.name, document: row.document } : { name: "", document: newLayout() });
-    setDirty(false); setEntryDirty(false); setUndo([]); setSelected(""); setHidden([]);
-    setHistory([]); setMode("select"); setPending(null); setChooser([]);
+    setDirty(false); setEntryDirty(false); setUndo([]); setSelected("");
+    setHistory([]); setPending(null);
     setCropPanel("closed"); setSetupOpen(!row);
   }, []);
 
@@ -85,12 +81,6 @@ export default function GrowPlanner({ db, farmId, crops, onDirty, onCropSaved, o
     return () => window.removeEventListener("beforeunload", warn);
   }, [hasUnsaved]);
 
-  function focusGrid() {
-    requestAnimationFrame(() => {
-      gridRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
-      gridRef.current?.focus({ preventScroll: true });
-    });
-  }
   function change(next: Snapshot) {
     setUndo(items => [...items.slice(-29), draft]); setDraft(next); setDirty(true);
     setStatus("Plot changes are not saved yet.");
@@ -107,7 +97,7 @@ export default function GrowPlanner({ db, farmId, crops, onDirty, onCropSaved, o
   }
   function openEntry(panel: CropPanel, cropId = "") {
     if (!closeEntry()) return;
-    setEditCropId(cropId); setCropPanel(panel); setMode("select"); setPending(null); setChooser([]);
+    setEditCropId(cropId); setCropPanel(panel); setPending(null);
     requestAnimationFrame(() => {
       entryRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
       entryRef.current?.querySelector<HTMLInputElement | HTMLSelectElement>("input,select")?.focus({ preventScroll: true });
@@ -115,47 +105,28 @@ export default function GrowPlanner({ db, farmId, crops, onDirty, onCropSaved, o
   }
   function cropSaved(crop: GrowCrop, size?: CropSize) {
     onCropSaved(crop); setEntryDirty(false); setCropPanel("closed");
-    if (size) {
-      setSelected("");
-      setPending({ plotId: crop.id, x: 0, y: 0, ...size }); setMode("place");
-      setStatus(`${crop.crop} details saved. Choose its top-left square on ${plotName}, then save the plot.`);
-      focusGrid();
-    } else setStatus(`${crop.crop} details saved. Its position is unchanged.`);
+    if (size) addCropToPlot({ plotId: crop.id, x: 0, y: 0, ...size }, crop.crop);
+    else setStatus(`${crop.crop} details saved.`);
   }
   function chooseCrop(cropId: string) {
     if (!closeEntry()) return;
-    setSelected(cropId); setMode("select"); setPending(null); setChooser([]);
-    setHidden(values => values.filter(value => value !== cropId));
+    setSelected(cropId); setPending(null);
   }
-  function place(layer: CropLayer) {
-    if (!fits(layout, layer)) {
-      setStatus("That crop does not fit there. Choose a position inside the plot, or change its size."); return;
-    }
-    const collision = overlaps(layout, layer);
-    if (collision.length && !window.confirm(`This overlaps ${collision.map(c => cropLabel(c.plotId)).join(", ")}. Keep this intentional overlap? Dates and crop compatibility are not evaluated.`)) return;
-    // Replace in place so layer numbers remain stable when crops move.
-    const exists = layout.layers.some(c => c.plotId === layer.plotId);
-    changeLayout({ ...layout, layers: exists ? layout.layers.map(c => c.plotId === layer.plotId ? layer : c) : [...layout.layers, layer] });
-    setSelected(layer.plotId); setMode("select"); setPending(null); setChooser([]);
-    setHidden(values => values.filter(value => value !== layer.plotId));
-    setStatus(`${cropLabel(layer.plotId)} is on ${plotName}. Save plot changes to keep this position.`);
-  }
-  function tap(cell: number) {
-    const here = layout.layers.filter(layer => footprint(layer).includes(cell));
-    if (mode === "shape") {
-      if (layout.cells.includes(cell) && here.length) { setStatus("Move the crop off this square before removing the square."); return; }
-      if (layout.cells.length === 1 && layout.cells.includes(cell)) { setStatus("Keep at least one square in your plot."); return; }
-      changeLayout({ ...layout, cells: layout.cells.includes(cell) ? layout.cells.filter(c => c !== cell) : [...layout.cells, cell] }); return;
-    }
-    const moving = mode === "place" ? pending : mode === "move" ? active : null;
-    if (moving) { place({ ...moving, x: cell % GRID, y: Math.floor(cell / GRID) }); return; }
-    const visible = here.filter(c => !hidden.includes(c.plotId));
-    if (visible.length > 1) setChooser(visible.map(c => c.plotId));
-    else if (visible.length === 1) chooseCrop(visible[0].plotId);
-    else setChooser([]);
+  function addCropToPlot(layer: CropLayer, label: string) {
+    const spot = findSpot(layout, layer);
+    if (!spot) { setStatus("This plot has no room left for another crop. Remove a crop before adding one."); return; }
+    const exists = layout.layers.some(c => c.plotId === spot.plotId);
+    changeLayout({ ...layout, layers: exists ? layout.layers.map(c => c.plotId === spot.plotId ? spot : c) : [...layout.layers, spot] });
+    setSelected(spot.plotId);
+    setStatus(`${label} added to ${plotName}. Save the plot to keep it.`);
   }
   async function save() {
     if (busy || !draft.name.trim()) return;
+    if (isDraft && !layout.plot_size) {
+      setStatus("Record the plot width and length before saving this new plot.");
+      setSetupOpen(true);
+      return;
+    }
     setBusy(true);
     try {
       const result = await db.rpc("drn_save_grow_layout", {
@@ -205,15 +176,10 @@ export default function GrowPlanner({ db, farmId, crops, onDirty, onCropSaved, o
     finally { setBusy(false); }
   }
 
-  // Setup can expose extra cells; normal crop work focuses on the actual plot.
-  const columns = Math.min(GRID, Math.max(2, ...layout.cells.map(c => c % GRID + (mode === "shape" ? 2 : 1))));
-  const rows = Math.min(GRID, Math.max(2, ...layout.cells.map(c => Math.floor(c / GRID) + (mode === "shape" ? 2 : 1))));
-  const plotWidth = Math.max(...layout.cells.map(c => c % GRID + 1));
-  const plotLength = Math.max(...layout.cells.map(c => Math.floor(c / GRID) + 1));
   const isDraft = !saved.some(row => row.id === id);
+  const needsDimensions = isDraft && !layout.plot_size;
   const unplaced = crops.filter(crop => !layout.layers.some(layer => layer.plotId === crop.id));
   const editingCrop = crops.find(crop => crop.id === editCropId);
-  const cropInteraction = mode === "place" || mode === "move";
 
   return <section className="panel grow-planner" aria-label="Plot planner">
     <div className="planner-heading">
@@ -222,10 +188,10 @@ export default function GrowPlanner({ db, farmId, crops, onDirty, onCropSaved, o
       <button className="quiet" onClick={() => setHelp(value => !value)} aria-expanded={help}>How this works</button>
     </div>
     {help && <aside className="planner-help">
-      <ol><li><strong>Name your plot.</strong> Choose its size and shape.</li>
-        <li><strong>Add a crop here.</strong> Enter dates and size, then tap its position on the plot.</li>
-        <li><strong>Save your plot.</strong> Select any crop to move it, edit its details, or record a harvest.</li></ol>
-      <p>Crops may overlap. Tap a shared square to choose by name. Your plot is a planning sketch, not a surveyed boundary or spacing recommendation.</p>
+      <ol><li><strong>Name your plot.</strong> Record its real width and length in feet.</li>
+        <li><strong>Add a crop.</strong> Enter its dates and notes; it joins this plot’s crop list.</li>
+        <li><strong>Save your plot.</strong> Select any crop to edit its details or record a harvest.</li></ol>
+      <p>Visual plot layout is paused while a scaled planner is designed. Recorded dimensions and saved crop records are kept.</p>
     </aside>}
     <p className="planner-status" role="status" aria-live="polite">{status}</p>
     {!ready ? <button className="quiet" onClick={() => void load().catch(() => setStatus("Could not reload your plots."))}>Retry plots</button> : <fieldset disabled={busy} className="planner-workspace">
@@ -247,144 +213,95 @@ export default function GrowPlanner({ db, farmId, crops, onDirty, onCropSaved, o
         }}>+ Create another plot</button>
       </div>
       <div className="planner-context">
-        <div><h3>{plotName}</h3><p>{layout.cells.length} square {layout.unit === "ft" ? "feet" : "meters"} · {layout.layers.length} crops on this plot</p></div>
+        <div><h3>{plotName}</h3><p>{layout.plot_size ? `${layout.plot_size.width_ft} × ${layout.plot_size.length_ft} ft` : "Dimensions not recorded"} · {layout.layers.length} crops on this plot</p></div>
         <span className="planner-save-state">{dirty || !revision ? "Not saved" : "Saved"}</span>
       </div>
       <div className="planner-step-heading">
-        <span className="planner-step">1</span><h3>Plot size & shape</h3>
+        <span className="planner-step">1</span><h3>Plot name & dimensions</h3>
         <button className="quiet" aria-expanded={setupOpen} onClick={() => setSetupOpen(value => !value)}>{setupOpen ? "Hide plot settings" : "Edit plot settings"}</button>
       </div>
       {setupOpen && <div className="planner-settings">
         <div className="planner-form-grid">
           <label>Plot name<input value={draft.name} maxLength={120} placeholder="For example, North bed" onChange={event => change({ ...draft, name: event.target.value })} /></label>
-          <label>Measure in<select value={layout.unit} disabled={revision > 0 || layout.layers.length > 0} onChange={event => changeLayout({ ...layout, unit: event.target.value as "ft" | "m" })}>
-            <option value="ft">Feet · each square is 1 × 1 ft</option><option value="m">Meters · each square is 1 × 1 m</option>
-          </select></label>
         </div>
-        <form key={`rectangle-${id}-${plotWidth}-${plotLength}`} onSubmit={event => {
+        <form key={`size-${id}`} onSubmit={event => {
           event.preventDefault(); const fields = new FormData(event.currentTarget);
-          const next = { ...layout, cells: rectangle(Number(fields.get("width")), Number(fields.get("height"))) };
-          if (!layout.layers.every(layer => fits(next, layer))) { setStatus("This size would cut off a crop. Move or resize that crop first."); return; }
-          changeLayout(next); setStatus("Plot size updated. Continue to crops, then save your plot.");
+          const width = Number(fields.get("width_ft")); const length = Number(fields.get("length_ft"));
+          if (!Number.isInteger(width) || !Number.isInteger(length) || width < 1 || length < 1 || width > MAX_PLOT_WIDTH_FT || length > MAX_PLOT_LENGTH_FT) {
+            setStatus(`Enter whole feet: width up to ${MAX_PLOT_WIDTH_FT} ft and length up to ${MAX_PLOT_LENGTH_FT} ft.`); return;
+          }
+          changeLayout({ ...layout, plot_size: { width_ft: width, length_ft: length } });
+          setStatus(`Plot size recorded as ${width} × ${length} ft. Save the plot to keep it.`);
         }}>
           <div className="planner-form-grid">
-            <label>Plot width ({layout.unit})<input name="width" type="number" min="1" max="12" defaultValue={plotWidth} required /></label>
-            <label>Plot length ({layout.unit})<input name="height" type="number" min="1" max="12" defaultValue={plotLength} required /></label>
+            <label>Plot width (ft)<input name="width_ft" type="number" min="1" max={MAX_PLOT_WIDTH_FT} step="1" defaultValue={layout.plot_size?.width_ft ?? ""} required /></label>
+            <label>Plot length (ft)<input name="length_ft" type="number" min="1" max={MAX_PLOT_LENGTH_FT} step="1" defaultValue={layout.plot_size?.length_ft ?? ""} required /></label>
           </div>
-          <div className="planner-actions"><button className="quiet">Update rectangular outline</button>
-            <button type="button" className="quiet" onClick={() => { if (!closeEntry()) return; setMode("shape"); setPending(null); focusGrid(); }}>Add or remove individual squares</button></div>
-          <p className="planner-caption">Changing the rectangle replaces its outline. Saved plots keep their original measurement unit.</p>
+          <div className="planner-actions"><button className="quiet">Record plot dimensions</button></div>
+          <p className="planner-caption">Dimensions are in feet, up to {MAX_PLOT_WIDTH_FT} ft wide and {MAX_PLOT_LENGTH_FT} ft long. Visual plot layout is paused while a scaled planner is designed; any layout you saved before is preserved untouched.</p>
         </form>
-        <button className="primary" disabled={!draft.name.trim()} onClick={() => { setSetupOpen(false); setStatus("Your plot is named. Add your first crop or use an existing crop record."); }}>Continue to crops</button>
+        <button className="primary" disabled={!draft.name.trim() || needsDimensions} onClick={() => { setSetupOpen(false); setStatus("Your plot is named and sized. Add your first crop or use an existing crop record."); }}>Continue to crops</button>
       </div>}
 
       <div className="planner-crop-workspace">
-        <div className="planner-step-heading"><span className="planner-step">2</span><div><h3>Crops in {plotName}</h3><p>Add crops and arrange them on this same plot.</p></div></div>
+        <div className="planner-step-heading"><span className="planner-step">2</span><div><h3>Crops in {plotName}</h3><p>Add crops to this plot and keep their details current.</p></div></div>
         <div className="planner-actions">
-          <button className="primary" disabled={!draft.name.trim() || layout.layers.length >= 60 || !!pending} onClick={() => openEntry("new")}>+ Add a crop</button>
-          <button className="quiet" disabled={!draft.name.trim() || !unplaced.length || layout.layers.length >= 60 || !!pending} onClick={() => openEntry("existing")}>Use a saved crop</button>
+          <button className="primary" disabled={!draft.name.trim() || needsDimensions || layout.layers.length >= 60 || !!pending} onClick={() => openEntry("new")}>+ Add a crop</button>
+          <button className="quiet" disabled={!draft.name.trim() || needsDimensions || !unplaced.length || layout.layers.length >= 60 || !!pending} onClick={() => openEntry("existing")}>Use a saved crop</button>
         </div>
         {!draft.name.trim() && <p>Name the plot above to start adding crops.</p>}
         <div ref={entryRef} className="planner-entry">
           {(cropPanel === "new" || (cropPanel === "edit" && editingCrop)) && <GrowCropForm
             key={`${cropPanel}-${editCropId}`} db={db} farmId={farmId}
             crop={cropPanel === "edit" ? editingCrop : undefined} plotName={plotName}
-            unit={layout.unit} colorIndex={layout.layers.length}
+            colorIndex={layout.layers.length}
             onDirty={() => setEntryDirty(true)} onSaved={cropSaved} onCancel={() => { closeEntry(); }}
           />}
           {cropPanel === "existing" && <form className="planner-crop-form" onChange={() => setEntryDirty(true)} onSubmit={event => {
             event.preventDefault(); const fields = new FormData(event.currentTarget);
-            setSelected("");
-            setPending({ plotId: String(fields.get("crop")), x: 0, y: 0, width: Number(fields.get("width")), height: Number(fields.get("height")), color: String(fields.get("color")) });
-            setCropPanel("closed"); setEntryDirty(false); setMode("place");
-            setStatus(`Choose this crop’s top-left square in ${plotName}.`); focusGrid();
+            const cropId = String(fields.get("crop"));
+            setCropPanel("closed"); setEntryDirty(false);
+            addCropToPlot({ plotId: cropId, x: 0, y: 0, width: 1, height: 1, color: String(fields.get("color")) }, cropLabel(cropId));
           }}>
             <h3>Place an existing crop in {plotName}</h3><p>These crop records are saved, but are not on this plot yet. This does not create a copy of the crop.</p>
             <label>Saved crop<select aria-label="Saved crop" name="crop" required defaultValue=""><option value="" disabled>Choose a crop</option>{unplaced.map(crop => <option key={crop.id} value={crop.id}>{cropLabel(crop.id)} · {crop.season}</option>)}</select></label>
             <div className="planner-form-grid">
-              <label>Crop width ({layout.unit})<input name="width" type="number" min="1" max="12" defaultValue="1" required /></label>
-              <label>Crop length ({layout.unit})<input name="height" type="number" min="1" max="12" defaultValue="1" required /></label>
               <label>Crop color<input name="color" type="color" defaultValue={colors[layout.layers.length % colors.length]} /></label>
             </div>
-            <div className="planner-actions"><button className="primary">Choose position on plot</button><button type="button" className="quiet" onClick={() => { closeEntry(); }}>Cancel</button></div>
+            <div className="planner-actions"><button className="primary">Add to this plot</button><button type="button" className="quiet" onClick={() => { closeEntry(); }}>Cancel</button></div>
           </form>}
         </div>
 
-        <div className={`planner-mode ${mode !== "select" ? "is-editing" : ""}`}>
-          <div><strong>{mode === "shape" ? "Editing the plot outline" : cropInteraction ? `${mode === "move" ? "Moving" : "Placing"} ${cropLabel((pending ?? active)!.plotId)}` : "Your plot layout"}</strong>
-            <p>{mode === "shape" ? "Tap an empty square to add it. Tap an unused plot square to remove it." : cropInteraction ? "Tap the top-left square where this crop should start." : "Tap a crop on the grid or select its name in the list. Numbers connect the two."}</p></div>
-          {mode !== "select" && <button className="quiet" onClick={() => {
-            setMode("select"); setPending(null);
-            setStatus(mode === "place" ? "Placement canceled. The saved crop is available under Use a saved crop." : "Finished arranging. Save your plot to keep changes.");
-          }}>{mode === "shape" ? "Done editing outline" : "Cancel placement"}</button>}
-        </div>
         <div className="planner-columns">
-          <div className="planner-canvas">
-            <div ref={gridRef} className="planner-scroll" tabIndex={0} aria-label={`Layout of ${plotName}`}>
-              <div className="planner-grid" style={{ gridTemplateColumns: `repeat(${columns}, 48px)` }}>
-                {Array.from({ length: rows * columns }, (_, index) => {
-                  const cell = Math.floor(index / columns) * GRID + index % columns;
-                  const layers = layout.layers.filter(layer => footprint(layer).includes(cell) && !hidden.includes(layer.plotId));
-                  const chosen = layers.find(layer => layer.plotId === selected) ?? layers.at(-1);
-                  return <button type="button" key={cell}
-                    className={`planner-cell ${layout.cells.includes(cell) ? "inside" : ""} ${layers.some(layer => layer.plotId === selected) ? "selected" : ""}`}
-                    style={chosen ? { backgroundColor: chosen.color + "55", borderColor: chosen.color } : undefined}
-                    aria-label={`Column ${cell % GRID + 1}, row ${Math.floor(cell / GRID) + 1}: ${layers.length ? layers.map(layer => cropLabel(layer.plotId)).join("; ") : layout.cells.includes(cell) ? "empty plot square" : "outside plot"}`}
-                    onClick={() => tap(cell)}>
-                    {chosen ? layers.map(layer => layout.layers.findIndex(c => c.plotId === layer.plotId) + 1).join("/") : layout.cells.includes(cell) ? "·" : "+"}
-                  </button>;
-                })}
-              </div>
-            </div>
-            <p className="planner-caption">Each square = 1 × 1 {layout.unit === "ft" ? "foot" : "meter"}. Swipe across larger plots. All planting dates are shown together.</p>
-            {chooser.length > 1 && <div className="planner-overlap" role="group" aria-label="Overlapping crops">
-              <strong>Which crop do you want to work with?</strong>
-              {chooser.map(cropId => <button className="quiet" key={cropId} onClick={() => chooseCrop(cropId)}>{cropLabel(cropId)}</button>)}
-            </div>}
-          </div>
           <div className="planner-layers">
             <h4>Crops on this plot <span>({layout.layers.length})</span></h4>
-            {!layout.layers.length && <div className="planner-empty"><p>Your plot is ready for crops.</p><p>Use <strong>Add a crop</strong> above. The crop will appear here and on the grid once you place it.</p></div>}
+            {!layout.layers.length && <div className="planner-empty"><p>Your plot is ready for crops.</p><p>Use <strong>Add a crop</strong> above. It will appear in this list.</p></div>}
             <div className="planner-layer-list">
               {layout.layers.map((layer, index) => <button className={`planner-layer ${selected === layer.plotId ? "is-selected" : ""}`}
                 key={layer.plotId} aria-pressed={selected === layer.plotId} onClick={() => chooseCrop(layer.plotId)}>
                 <span className="planner-layer-number" style={{ borderColor: layer.color }}>{index + 1}</span>
                 <span><strong>{crops.find(crop => crop.id === layer.plotId)?.crop ?? "Crop"}</strong>
                   <small>{crops.find(crop => crop.id === layer.plotId)?.name}</small>
-                  <small>{layer.width} × {layer.height} {layout.unit}{hidden.includes(layer.plotId) ? " · hidden on grid" : ""}</small></span>
+                  <small>{crops.find(crop => crop.id === layer.plotId)?.season}</small></span>
                 <span className="planner-layer-action">{selected === layer.plotId ? "Selected" : "Select"}</span>
               </button>)}
             </div>
           </div>
         </div>
         {active && <section className="planner-selected" aria-label="Selected crop">
-          <div className="planner-heading"><div><span className="planner-caption">Working with crop {layout.layers.findIndex(layer => layer.plotId === active.plotId) + 1} in {plotName}</span>
+          <div className="planner-heading"><div><span className="planner-caption">Working with a crop in {plotName}</span>
             <h3>{activeCrop?.crop ?? "Selected crop"}</h3><p>Plant: {activeCrop?.planted_on ?? "Not set"} · Expected harvest: {activeCrop?.planned_harvest_on ?? "Not set"}</p></div>
-            <button className="quiet" onClick={() => { setSelected(""); setMode("select"); }}>Close crop controls</button>
+            <button className="quiet" onClick={() => { setSelected(""); }}>Close crop controls</button>
           </div>
           <div className="planner-actions">
-            <button className="primary" onClick={() => { if (!closeEntry()) return; setMode("move"); setPending(null); focusGrid(); }}>Move this crop</button>
-            <button className="quiet" onClick={() => openEntry("edit", active.plotId)}>Edit crop details</button>
+            <button className="primary" onClick={() => openEntry("edit", active.plotId)}>Edit crop details</button>
             <button className="quiet" onClick={() => onHarvest(active.plotId)}>Record harvest for this crop</button>
           </div>
-          <details className="planner-more"><summary>Resize, color and other crop controls</summary>
-            <form key={`${active.plotId}-${active.width}-${active.height}`} onSubmit={event => {
-              event.preventDefault(); const fields = new FormData(event.currentTarget);
-              place({ ...active, width: Number(fields.get("width")), height: Number(fields.get("height")) });
-            }}>
-              <div className="planner-form-grid">
-                <label>Selected crop width ({layout.unit})<input name="width" type="number" min="1" max="12" defaultValue={active.width} required /></label>
-                <label>Selected crop length ({layout.unit})<input name="height" type="number" min="1" max="12" defaultValue={active.height} required /></label>
-              </div><button className="quiet">Update crop size</button>
-            </form>
+          <details className="planner-more"><summary>Crop color and removal</summary>
             <label>Selected crop color<input type="color" value={active.color} onChange={event => changeLayout({ ...layout, layers: layout.layers.map(layer => layer.plotId === active.plotId ? { ...layer, color: event.target.value } : layer) })} /></label>
-            <div className="planner-actions" aria-label="Move one square">
-              {([[-1, 0, "Left"], [0, -1, "Up"], [0, 1, "Down"], [1, 0, "Right"]] as const).map(([dx, dy, name]) => <button className="quiet" key={name} onClick={() => place({ ...active, x: active.x + dx, y: active.y + dy })}>{name} one square</button>)}
-            </div>
             <div className="planner-actions">
-              <button className="quiet" onClick={() => setHidden(values => values.includes(active.plotId) ? values.filter(value => value !== active.plotId) : [...values, active.plotId])}>{hidden.includes(active.plotId) ? "Show" : "Hide"} this crop on grid</button>
-              <button className="quiet" onClick={() => { changeLayout({ ...layout, layers: layout.layers.filter(layer => layer.plotId !== active.plotId) }); setSelected(""); setMode("select"); }}>Remove crop from this plot</button>
-            </div><p className="planner-caption">Removing a crop from the layout keeps its saved details and harvest records.</p>
+              <button className="quiet" onClick={() => { changeLayout({ ...layout, layers: layout.layers.filter(layer => layer.plotId !== active.plotId) }); setSelected(""); }}>Remove crop from this plot</button>
+            </div><p className="planner-caption">Removing a crop from this plot keeps its saved details and harvest records.</p>
           </details>
         </section>}
       </div>
@@ -392,9 +309,9 @@ export default function GrowPlanner({ db, farmId, crops, onDirty, onCropSaved, o
         <div><strong>{plotName}</strong><span>{pending ? "Choose a crop position first" : entryDirty ? "Finish or cancel crop details first" : dirty || !revision ? "Plot changes are not saved" : "All plot changes saved"}</span></div>
         <div className="planner-actions">
           <button className="quiet" disabled={!undo.length || !!pending || entryDirty} onClick={() => {
-            setDraft(undo.at(-1)!); setUndo(items => items.slice(0, -1)); setDirty(true); setSelected(""); setMode("select"); setChooser([]);
+            setDraft(undo.at(-1)!); setUndo(items => items.slice(0, -1)); setDirty(true); setSelected("");
           }}>Undo plot change</button>
-          <button className="primary" disabled={!draft.name.trim() || !!pending || entryDirty || (!dirty && revision > 0)} onClick={() => void save()}>{busy ? "Saving…" : revision ? "Save plot changes" : "Save this plot"}</button>
+          <button className="primary" disabled={!draft.name.trim() || needsDimensions || !!pending || entryDirty || (!dirty && revision > 0)} onClick={() => void save()}>{busy ? "Saving…" : revision ? "Save plot changes" : "Save this plot"}</button>
         </div>
       </div>
       <details className="planner-more">
@@ -425,7 +342,7 @@ export default function GrowPlanner({ db, farmId, crops, onDirty, onCropSaved, o
           <p>{row.document.cells.length} square {row.document.unit} · {row.document.layers.length} crops</p>
           <button className="quiet" onClick={() => {
             if (!discardOK()) return;
-            change({ name: row.name, document: row.document }); setEntryDirty(false); setCropPanel("closed"); setSelected(""); setMode("select"); setPending(null);
+            change({ name: row.name, document: row.document }); setEntryDirty(false); setCropPanel("closed"); setSelected(""); setPending(null);
           }}>Use this version as a draft</button>
         </details>)}
       </details>

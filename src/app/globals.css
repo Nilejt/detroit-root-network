@@ -1096,7 +1096,7 @@ h1 {
 
 /* V2 discovery layers stay visually secondary to the core find-food flow. */
 .menu-toggle { display: none; border: 1px solid #8caf9f; border-radius: 999px; padding: 10px 14px; background: transparent; color: white; font-weight: 800; gap: 7px; }
-.compact-search { display: grid; grid-template-columns: minmax(250px, 1.5fr) repeat(2, minmax(180px, .75fr)); gap: 10px; align-items: end; margin: -8px 0 22px; padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; }
+.compact-search { display: grid; width: 100%; grid-template-columns: minmax(250px, 1.5fr) repeat(2, minmax(180px, .75fr)); gap: 10px; align-items: end; margin: -8px 0 30px; padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; }
 .compact-search label, .event-form label, .alert-signup label { display: grid; gap: 6px; font-weight: 700; font-size: .82rem; }
 .compact-search input, .compact-search select, .event-form input, .event-form select, .event-form textarea, .alert-signup input { width: 100%; min-height: 44px; border: 1px solid #9aab99; border-radius: 9px; padding: 9px 11px; background: white; color: var(--ink); }
 .nutrition-context, .route-root, .alert-signup { margin: 0 0 22px; padding: 20px; border-radius: 18px; border: 1px solid #b7c6af; background: #edf2e8; }
@@ -1121,11 +1121,24 @@ h1 {
 .alert-signup .checkline input, .event-form .checkline input, .checkline input { width: 18px; min-height: 18px; }
 .sms-preview { grid-column: 1 / -1; padding: 14px 16px; border-radius: 12px; background: white; border-left: 4px solid var(--bronze); line-height: 1.5; }
 .sms-preview span { display: block; color: var(--muted); font-size: .8rem; margin-top: 5px; }
-.community-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.community-card { display: flex; flex-direction: column; gap: 9px; padding: 18px; border-radius: 16px; border: 1px solid var(--line); background: white; }
-.community-card h2 { font-size: 1.25rem; margin: 0; }
+.community-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; align-items: stretch; }
+.community-card { display: flex; flex-direction: column; gap: 0; padding: 26px 24px; border-radius: 16px; border: 1px solid var(--line); background: white; height: 100%; transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease; }
+.community-card:hover { box-shadow: 0 14px 30px -22px rgba(35, 63, 46, .55); border-color: #c7c2b2; transform: translateY(-2px); }
+.community-card .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+.community-card .row > span:last-child { color: var(--muted); font-size: .78rem; font-weight: 700; letter-spacing: .04em; }
+.community-card .eyebrow { margin-bottom: 8px !important; }
+.community-card h2 { font-family: Georgia, "Times New Roman", serif; font-size: 1.4rem; line-height: 1.2; letter-spacing: -0.01em; margin: 0 0 6px; }
+.community-card > b { color: var(--muted); font-weight: 700; font-size: .88rem; }
+.community-card .event-copy { color: var(--muted); line-height: 1.55; margin: 12px 0 0; flex: 1 1 auto; }
+.community-card .tag { border-radius: 999px; padding: 4px 11px; }
+.community-card .row > span:last-child { border-radius: 999px; padding: 4px 11px; background: var(--mint); color: var(--green); text-transform: uppercase; font-size: .68rem; letter-spacing: .08em; font-weight: 900; }
+.community-card .event-meta { margin: 18px 0 0; padding-top: 14px; border-top: 1px solid #ece8dc; display: grid; gap: 6px; color: var(--ink); font-size: .84rem; }
+.community-card .event-meta span { color: var(--muted); }
+.community-card .event-meta strong { font-weight: 800; }
 .community-card p { color: var(--muted); line-height: 1.5; }
-.event-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+.event-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; padding-top: 0; }
+.community-card .event-actions { margin-top: auto; padding-top: 20px; }
+.community-card .event-actions button, .community-card .event-actions a { flex: 1 1 auto; justify-content: center; text-align: center; border-radius: 999px; padding: 11px 16px; font-weight: 800; }
 .privacy-note, .source-note { color: var(--muted); line-height: 1.55; }
 .event-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .event-form .event-description, .event-form .form-submit { grid-column: 1 / -1; }
@@ -1151,3 +1164,63 @@ h1 {
   .community-grid, .event-form, .alert-signup fieldset { grid-template-columns: minmax(0, 1fr); }
   .event-form .event-description, .event-form .form-submit { grid-column: 1; }
 }
+
+/* Quieter desktop navigation: secondary destinations behind a disclosure. */
+.nav-more { position: relative; display: flex; }
+.nav-more-toggle { border: 0; background: transparent; color: var(--ink); padding: 10px 14px; border-radius: 999px; cursor: pointer; font-weight: 700; }
+.nav-more-toggle[aria-expanded="true"] { background: var(--mint); }
+.nav-more-panel { display: none; position: absolute; top: calc(100% + 8px); right: 0; min-width: 210px; flex-direction: column; gap: 4px; padding: 8px; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 10px 24px #173e3529; z-index: 30; }
+.nav-more-panel.open { display: flex; }
+.nav-more-panel a, .nav-more-panel button { text-align: left; width: 100%; color: var(--ink); text-decoration: none; padding: 10px 12px; border: 0; background: transparent; border-radius: 10px; font-weight: 700; cursor: pointer; }
+.nav-more-panel a:hover, .nav-more-panel button:hover { background: var(--mint); }
+.nav-account { display: inline-flex; margin-left: 6px; padding-left: 8px; border-left: 1px solid #c6d3c9; }
+.nav-account button { border: 0; background: transparent; color: var(--muted); padding: 10px 12px; border-radius: 999px; font-weight: 700; cursor: pointer; }
+
+/* One slim active-filter bar replaces the two stacked nutrition panels. */
+.filter-bar { display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: center; margin: 0 0 18px; padding: 12px 16px; border-radius: 14px; border: 1px solid #b7c6af; background: #edf2e8; }
+.filter-bar-main { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; min-width: 0; }
+.filter-bar-label { color: var(--bronze); font-weight: 800; font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; }
+.filter-bar-main .chips { margin: 0; }
+.filter-bar-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.filter-bar .nutrition-disclaimer { grid-column: 1 / -1; margin: 0; font-size: .78rem; line-height: 1.45; color: var(--muted); }
+.filter-bar .route-plan { grid-column: 1 / -1; border-top: 1px solid #c8d3c1; padding-top: 14px; }
+
+/* Card numbers correspond to the numbered map markers. */
+.card-idline { display: inline-flex; align-items: center; gap: 8px; }
+.card-number { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 8px; background: var(--green); color: white; font-size: .78rem; font-weight: 900; }
+
+@media (max-width: 850px) {
+  /* Burger menu keeps every destination in one flat list. */
+  .nav-more { display: contents; }
+  .nav-more-toggle { display: none; }
+  .nav-more-panel { display: flex; position: static; min-width: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+  .nav-account { display: flex; margin: 6px 0 0; padding: 6px 0 0; border-left: 0; border-top: 1px solid #c6d3c9; }
+  .nav-account button { text-align: left; width: 100%; }
+}
+@media (max-width: 560px) {
+  .filter-bar { grid-template-columns: minmax(0, 1fr); }
+  .filter-bar-actions { justify-content: flex-start; }
+}
+
+/* Breathing room between the alert checkboxes and the mobile number field. */
+.alert-signup fieldset { margin-bottom: 10px; padding-bottom: 14px; border-bottom: 1px solid #c8d3c1; }
+
+/* Root Route: keep the multi-stop directions action clear of the stop list. */
+.route-plan label { margin-bottom: 18px; }
+.route-plan ol { margin-top: 0; margin-bottom: 24px; }
+.route-plan > a.primary { display: inline-flex; align-items: center; justify-content: center; margin-top: 12px; line-height: 1.2; }
+.route-plan li b { display: block; overflow-wrap: anywhere; }
+/* Map pin numbers stay upright inside the tilted pin silhouette. */
+.farm-marker i { font-style: normal; transform: rotate(45deg); }
+/* Customers following a single farm. */
+.farm-alerts .farm-alert-form { display: grid; gap: 12px; margin-top: 10px; }
+.farm-alerts fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; border: 0; padding: 0 0 14px; margin: 0; border-bottom: 1px solid #c8d3c1; }
+.farm-alerts legend { font-weight: 800; margin-bottom: 8px; }
+.farm-alerts label { display: grid; gap: 6px; font-weight: 700; font-size: .82rem; }
+.farm-alerts input[type="text"] { width: 100%; min-height: 44px; border: 1px solid #9aab99; border-radius: 9px; padding: 9px 11px; background: white; color: var(--ink); }
+.farm-alerts .farm-alert-form > .primary { width: max-content; }
+@media (max-width: 560px) { .farm-alerts fieldset { grid-template-columns: minmax(0, 1fr); } }
+
+/* Shoppers can scope the optional alerts to one farm. */
+.alert-signup .alert-scope { grid-column: 1 / -1; display: grid; gap: 6px; font-weight: 700; margin-bottom: 4px; }
+.alert-signup .alert-scope select { min-height: 44px; border: 1px solid #9aab99; border-radius: 9px; padding: 9px 11px; background: white; color: var(--ink); }

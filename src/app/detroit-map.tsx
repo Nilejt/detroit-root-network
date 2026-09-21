@@ -30,9 +30,14 @@ const coordinates: Record<string, [number, number]> = {
 
 export default function DetroitMap<T extends MapFarm>({
   farms,
+  numbers,
+  filtered = false,
   onSelect,
 }: {
   farms: T[];
+  filtered?: boolean;
+  // Shared numbering from the results list, so markers match the cards.
+  numbers?: Record<string, number>;
   onSelect: (farm: T) => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
@@ -62,14 +67,14 @@ export default function DetroitMap<T extends MapFarm>({
         const marker = L.marker(point, {
           icon: L.divIcon({
             className: "farm-marker-wrap",
-            html: `<span class="farm-marker ${farm.test_tier?.toLowerCase() ?? ""}">${index + 1}</span>`,
+            html: `<span class="farm-marker"><i>${numbers?.[farm.id] ?? index + 1}</i></span>`,
             iconSize: [38, 38],
             iconAnchor: [19, 38],
           }),
         }).addTo(map!);
         // Farm names are user content; Leaflet string tooltips interpret HTML.
         const tooltip = document.createElement("span");
-        tooltip.textContent = `${farm.name} · ${farm.test_tier ?? "Live"}`;
+        tooltip.textContent = farm.name;
         marker.bindTooltip(
           tooltip,
           { direction: "top", offset: [0, -30] },
@@ -89,15 +94,15 @@ export default function DetroitMap<T extends MapFarm>({
       clearTimeout(resizeTimer);
       map?.remove();
     };
-  }, [farms, onSelect]);
+  }, [farms, numbers, onSelect]);
   return (
     <aside
       className="map-shell"
-      aria-label={`Interactive Detroit map showing ${farms.length} farm locations`}
+      aria-label={`Interactive Detroit map showing ${farms.length} ${filtered ? "matching " : ""}farm locations`}
     >
       <div className="mapkey">
-        <b>{farms.length} places shown</b>
-        <span>Tap a marker for stall details</span>
+        <b>{farms.length} {filtered ? "matching locations" : "locations shown"}</b>
+        <span>Numbers match the cards · tap a marker for stall details</span>
       </div>
       <div ref={host} className="detroit-map" />
     </aside>

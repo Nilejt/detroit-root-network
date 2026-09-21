@@ -10,8 +10,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Detroit Root Network product direction
 
-- Organize the product around **Customer Find**, **Farmer Sell**, and **Farmer Grow**. Grow and Sell may coexist for the same farm; they are capabilities, not authorization roles.
-- Monetization is permitted only within Farmer Grow, subject to explicit approval of specific paid features. Keep Customer Find and Farmer Sell free of paywalls and monetization. Do not add billing merely because Grow is eligible.
+- Organize the product around **Customers Buy**, **Farmers Sell**, and **Farmers Grow**. Grow and Sell may coexist for the same farm; they are capabilities, not authorization roles.
+- Monetization is permitted only within Farmers Grow, subject to explicit approval of specific paid features. Keep Customers Buy and Farmers Sell free of paywalls and monetization. Do not add billing merely because Grow is eligible.
 - Follow `docs/PRODUCT-PRINCIPLES.md` for mission, privacy, and product boundaries.
 
 ## Human developer handoff

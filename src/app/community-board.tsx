@@ -47,8 +47,8 @@ export default function CommunityBoard({ events = demoEvents }: { events?: Commu
     <div className="community-grid">
       {events.map(event => <article className="community-card" key={event.id}>
         <div className="row"><span className="tag">{event.publisher_type === "farm" ? "Verified farm" : "Verified partner"}</span><span>{event.is_free ? "Free" : "Registration required"}</span></div>
-        <p className="eyebrow">{event.event_type}</p><h2>{event.title}</h2><b>{event.organization_name}</b><p>{event.description}</p>
-        <p><strong>{new Date(event.starts_at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}</strong><br />{event.address}</p>
+        <p className="eyebrow">{event.event_type}</p><h2>{event.title}</h2><b>{event.organization_name}</b><p className="event-copy">{event.description}</p>
+        <p className="event-meta"><strong>{new Date(event.starts_at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}</strong><span>{event.address}</span></p>
         <div className="event-actions"><button className={saved.includes(event.id) ? "primary" : "quiet"} onClick={() => toggle(event.id)}>{saved.includes(event.id) ? "Interest saved" : "Save interest"}</button>{event.registration_url && <a className="primary" href={event.registration_url}>Register ↗</a>}</div>
       </article>)}
     </div>

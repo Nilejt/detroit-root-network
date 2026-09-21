@@ -2,6 +2,6 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const Module=require('node:module');const ts=require('typescript');
 const m=new Module(__filename);m._compile(ts.transpileModule(fs.readFileSync('src/lib/grow-layout.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,__filename);const {rectangle,footprint,fits,overlaps,newLayout}=m.exports;
 const crop={plotId:'a',x:0,y:0,width:2,height:2,color:'#386b50'};
-test('rectangle preserves row coordinates and square area',()=>{assert.deepEqual(rectangle(2,2,1,1),[13,14,25,26]);assert.equal(newLayout().cells.length,16);});
+test('rectangle preserves row coordinates and square area',()=>{assert.deepEqual(rectangle(2,2,1,1),[13,14,25,26]);assert.equal(newLayout().cells.length,144);});
 test('crop must fit irregular plot and cannot wrap grid edges',()=>{const l=newLayout();assert.ok(fits(l,crop));assert.equal(fits({...l,cells:l.cells.filter(c=>c!==13)},crop),false);assert.equal(fits({unit:'ft',cells:Array.from({length:144},(_,i)=>i),layers:[]},{...crop,x:11}),false);assert.equal(fits(l,{...crop,x:-1}),false);assert.equal(fits(l,{...crop,width:1.5}),false);});
 test('overlap ignores self and finds hidden or differently dated layers geometrically',()=>{const b={...crop,plotId:'b',x:1};const l={...newLayout(),layers:[crop,b]};assert.deepEqual(overlaps(l,crop),[b]);assert.equal(footprint(crop).length,4);assert.equal(overlaps(l,{...crop,x:3,y:3,width:1,height:1}).length,0);});

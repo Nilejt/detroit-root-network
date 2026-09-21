@@ -12,6 +12,7 @@ create table public.farm_members(farm_id uuid, user_id uuid);
 \ir ../supabase/migrations/008_grow_beta.sql
 \ir ../supabase/migrations/009_grow_owner_beta_access.sql
 \ir ../supabase/migrations/010_grow_layouts.sql
+\ir ../supabase/migrations/013_grow_plot_dimensions.sql
 insert into farms values ('10000000-0000-4000-8000-000000000001','T1'),('10000000-0000-4000-8000-000000000002','T1'),('10000000-0000-4000-8000-000000000003','T2');
 insert into profiles values ('20000000-0000-4000-8000-000000000001','farmer'),('20000000-0000-4000-8000-000000000002','director_q'),('20000000-0000-4000-8000-000000000003','owner');
 insert into farm_members values ('10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001'),('10000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000002'),('10000000-0000-4000-8000-000000000003','20000000-0000-4000-8000-000000000001');
@@ -27,8 +28,11 @@ begin
 end $$;
 set role authenticated;
 set request.jwt.claim.sub='20000000-0000-4000-8000-000000000001';
-select pg_temp.check_true(drn_save_grow_layout('10000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000001',0,'Real name','{"unit":"ft","cells":[0,1,12,13],"layers":[{"plotId":"30000000-0000-4000-8000-000000000001","x":0,"y":0,"width":1,"height":1,"color":"#386b50"}]}')=1,'member can save');
+select pg_temp.check_true(drn_save_grow_layout('10000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000001',0,'Real name','{"unit":"ft","cells":[0,1,12,13],"layers":[{"plotId":"30000000-0000-4000-8000-000000000001","x":0,"y":0,"width":1,"height":1,"color":"#386b50"}],"plot_size":{"width_ft":500,"length_ft":200}}')=1,'member can save physical dimensions');
 select pg_temp.check_true((select name='Real name' from grow_layouts),'name preserved during validation');
+select pg_temp.check_true((select document->'plot_size'='{"width_ft":500,"length_ft":200}'::jsonb from grow_layouts),'physical dimensions preserved');
+select pg_temp.reject($q$select drn_save_grow_layout('10000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000004',0,'Too wide','{"unit":"ft","cells":[0],"layers":[],"plot_size":{"width_ft":501,"length_ft":200}}')$q$,'P0001');
+select pg_temp.reject($q$select drn_save_grow_layout('10000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000004',0,'Unknown field','{"unit":"ft","cells":[0],"layers":[],"plot_size":null,"extra":true}')$q$,'P0001');
 select pg_temp.reject($q$select drn_save_grow_layout('10000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000001',0,'stale','{"unit":"ft","cells":[0],"layers":[]}')$q$,'40001');
 select pg_temp.reject($q$select drn_save_grow_layout('10000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000001',1,'bad crop','{"unit":"ft","cells":[0],"layers":[{"plotId":"30000000-0000-4000-8000-000000000002","x":0,"y":0,"width":1,"height":1,"color":"#386b50"}]}')$q$,'P0001');
 select pg_temp.reject($q$select drn_save_grow_layout('10000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000001',1,'outside','{"unit":"ft","cells":[0],"layers":[{"plotId":"30000000-0000-4000-8000-000000000001","x":1,"y":0,"width":1,"height":1,"color":"#386b50"}]}')$q$,'P0001');

@@ -406,8 +406,8 @@ export default function FarmerTools({
         </button>
       </div>
       <div className="filters" aria-label="Farmer workspace">
-        <button type="button" className={mode === "sell" ? "on" : ""} aria-pressed={mode === "sell"} onClick={() => { if (plannerDirty && !window.confirm("Discard unsaved Grow changes?")) return; onPlannerDirty(false); setMode("sell"); }}>Farmer Sell</button>
-        <button type="button" className={mode === "grow" ? "on" : ""} aria-pressed={mode === "grow"} onClick={() => setMode("grow")}>Farmer Grow · Beta</button>
+        <button type="button" className={mode === "sell" ? "on" : ""} aria-pressed={mode === "sell"} onClick={() => { if (plannerDirty && !window.confirm("Discard unsaved Grow changes?")) return; onPlannerDirty(false); setMode("sell"); }}>Farmers Sell</button>
+        <button type="button" className={mode === "grow" ? "on" : ""} aria-pressed={mode === "grow"} onClick={() => setMode("grow")}>Farmers Grow · Beta</button>
       </div>
       {mode === "grow" && <GrowTools key={farm.id} db={db} farmId={farm.id} onDirty={onPlannerDirty} />}
       <div className="farmer-wrap" hidden={mode !== "sell"}>
@@ -530,8 +530,9 @@ export default function FarmerTools({
                   className="circle delete"
                   onClick={() => removeItem(i)}
                   aria-label={`Delete ${i.item_name}`}
+                  title={`Delete ${i.item_name}`}
                 >
-                  ⌫
+                  <span aria-hidden="true">🗑</span>
                 </button>
               </div>
             </article>
@@ -664,8 +665,9 @@ export default function FarmerTools({
                 className="circle delete"
                 onClick={() => removeHelp(v.id)}
                 aria-label={`Delete ${v.title}`}
+                title={`Delete ${v.title}`}
               >
-                ⌫
+                <span aria-hidden="true">🗑</span>
               </button>
             </article>
           ))}

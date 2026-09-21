@@ -10,7 +10,9 @@ import Link from "next/link";
 import MissionFeedback from "./mission/mission-feedback";
 import CommunityBoard from "./community-board";
 import AlertSignup from "./alert-signup";
+import FarmAlertSignup from "./farm-alert-signup";
 import PartnerTools from "./partner-tools";
+import NavMore from "./primary-nav";
 import {
   matchesNutritionObjective,
   nutritionForProduce,
@@ -406,7 +408,25 @@ export default function Home() {
     return Array.from(suggestions).sort().slice(0, 8);
   }, [farms, search]);
   const nutritionProduce = useMemo(() => nutrition === "all" ? [] : Array.from(new Set(shown.flatMap(farm => farm.inventory_items.filter(item => item.quantity > 0 && ["available", "low_stock"].includes(item.stock_status) && matchesNutritionObjective(item.item_name, nutrition)).map(item => item.item_name)))).sort(), [shown, nutrition]);
-  const routeFarms = useMemo(() => nutrition === "all" ? [] : shown.filter(farm => farm.inventory_items.some(item => item.quantity > 0 && ["available", "low_stock"].includes(item.stock_status) && matchesNutritionObjective(item.item_name, nutrition))).slice(0, routeSort === "matches" ? 4 : 3), [shown, nutrition, routeSort]);
+  // Stops are ranked by how much matching produce each farm has for the
+  // selected nutrition goal, so changing the goal changes the stop list.
+  const routeFarms = useMemo(() => {
+    if (nutrition === "all") return [];
+    const matchCount = (farm: Farm) => farm.inventory_items.filter(item => item.quantity > 0 && ["available", "low_stock"].includes(item.stock_status) && matchesNutritionObjective(item.item_name, nutrition)).length;
+    const ranked = shown
+      .map(farm => ({ farm, matches: matchCount(farm) }))
+      .filter(entry => entry.matches > 0);
+    if (routeSort === "matches") ranked.sort((a, b) => b.matches - a.matches || a.farm.name.localeCompare(b.farm.name));
+    return ranked.slice(0, routeSort === "matches" ? 4 : 3).map(entry => entry.farm);
+  }, [shown, nutrition, routeSort]);
+  // One numbered result list feeds both the cards and the map markers, so
+  // marker "3" and the card labelled "3" are always the same farm.
+  const mappedFarms = useMemo(() => nutrition === "all" ? shown : shown.filter(farm => farm.inventory_items.some(item => item.quantity > 0 && ["available", "low_stock"].includes(item.stock_status) && matchesNutritionObjective(item.item_name, nutrition))), [shown, nutrition]);
+  const resultNumbers = useMemo(() => {
+    const numbers: Record<string, number> = {};
+    mappedFarms.forEach((farm, index) => { numbers[farm.id] = index + 1; });
+    return numbers;
+  }, [mappedFarms]);
   const signIn = async (e: FormEvent) => {
     e.preventDefault();
     if (!db) return setNotice("Supabase is not configured.");
@@ -474,7 +494,6 @@ export default function Home() {
         </button>
         <button className="menu-toggle" aria-expanded={mobileMenu} aria-controls="primary-nav" onClick={() => setMobileMenu(value => !value)}><span aria-hidden="true">☰</span><span>Menu</span></button>
         <nav id="primary-nav" className={mobileMenu ? "menu-open" : ""}>
-          {user && <button onClick={async () => { if (!leavePlanner()) return; await db?.auth.signOut(); setUser(null); setNotes([]); }}>Sign out</button>}
           <button
             className={tab === "find" ? "on" : ""}
             onClick={() => { if (leavePlanner()) { setTab("find"); setMobileMenu(false); } }}
@@ -482,21 +501,24 @@ export default function Home() {
             Find food
           </button>
           <button className={tab === "community" ? "on" : ""} onClick={() => { if (leavePlanner()) { setTab("community"); setMobileMenu(false); } }}>Community Board</button>
-          {user && <button className={tab === "partner" ? "on" : ""} onClick={() => { if (leavePlanner()) { setTab("partner"); setMobileMenu(false); } }}>Partner tools</button>}
           <button
             className={tab === "farmer" ? "on" : ""}
             onClick={() => { setTab("farmer"); setMobileMenu(false); }}
           >
-            Farmer tools
+            Farmers Sell
           </button>
-          <Link onClick={e => { if (!leavePlanner()) e.preventDefault(); }} href="/mission" style={{ color: "inherit", padding: "10px 12px" }}>Our mission</Link>
-          <Link onClick={e => { if (!leavePlanner()) e.preventDefault(); }} href="/design-journey" style={{ color: "inherit", padding: "10px 12px" }}>Design Journey</Link>
-          <button
-            className={tab === "feedback" ? "on" : ""}
-            onClick={() => { if (leavePlanner()) setTab("feedback"); }}
-          >
-            Admin
-          </button>
+          {user && <button className={tab === "partner" ? "on" : ""} onClick={() => { if (leavePlanner()) { setTab("partner"); setMobileMenu(false); } }}>Partner tools</button>}
+          <NavMore>
+            <Link onClick={e => { if (!leavePlanner()) e.preventDefault(); else setMobileMenu(false); }} href="/mission">Our mission</Link>
+            <Link onClick={e => { if (!leavePlanner()) e.preventDefault(); else setMobileMenu(false); }} href="/design-journey">Design Journey</Link>
+            <button
+              className={tab === "feedback" ? "on" : ""}
+              onClick={() => { if (leavePlanner()) { setTab("feedback"); setMobileMenu(false); } }}
+            >
+              Admin
+            </button>
+          </NavMore>
+          {user && <span className="nav-account"><button onClick={async () => { if (!leavePlanner()) return; await db?.auth.signOut(); setUser(null); setNotes([]); setMobileMenu(false); }}>Sign out</button></span>}
         </nav>
       </header>
       {notice && (
@@ -538,8 +560,21 @@ export default function Home() {
             <label><span>Nutrition objective</span><select value={nutrition} onChange={(e) => { setNutrition(e.target.value as NutritionObjective | "all"); setRouteOpen(false); }}><option value="all">All produce</option>{nutritionObjectives.map(objective => <option key={objective.id} value={objective.id}>{objective.label}</option>)}</select></label>
             <label><span>Region</span><select value={region} onChange={(e) => setRegion(e.target.value)}><option value="all">All Detroit regions</option>{["Downtown","Midtown","North End/New Center","West","Southwest","East"].map((r) => <option key={r}>{r}</option>)}</select></label>
           </div>
-          {nutrition !== "all" && <div className="nutrition-context"><div><p className="eyebrow">PRODUCE MATCHING YOUR OBJECTIVE</p><h2>{nutritionObjectives.find(item => item.id === nutrition)?.label}</h2><div className="chips">{nutritionProduce.length ? nutritionProduce.map(item => <span key={item}>{item}</span>) : <span>No current matches</span>}</div></div><button className="quiet" onClick={() => setNutrition("all")}>Clear objective</button><p className="nutrition-disclaimer">These results use recognized nutrition sources for general food discovery and education—not diagnosis, treatment, or individualized medical advice. Nutrition needs vary by person.</p></div>}
-          {nutrition !== "all" && routeFarms.length >= 3 && <div className="route-root"><div><p className="eyebrow">ROOT ROUTE · BASIC DEMO</p><h2>Plan a path across {routeFarms.length} matching farms</h2><p>Build a simple trip from farms with currently available matching produce.</p></div><button className="primary" onClick={() => setRouteOpen(value => !value)}>{routeOpen ? "Hide route" : "Build Root Route"}</button>{routeOpen && <div className="route-plan"><label>Prioritize<select value={routeSort} onChange={e => setRouteSort(e.target.value as "matches" | "closest")}><option value="matches">Most matching produce</option><option value="closest">Closest demo sequence</option></select></label><ol>{routeFarms.map((farm, index) => <li key={farm.id}><b>{index + 1}. {farm.name}</b><span>{farm.inventory_items.filter(item => item.quantity > 0 && matchesNutritionObjective(item.item_name, nutrition)).map(item => item.item_name).join(", ")}</span></li>)}</ol><a className="primary" target="_blank" rel="noreferrer" href={`https://www.google.com/maps/dir/${routeFarms.map(farm => encodeURIComponent(`${farm.selling_locations[0]?.address ?? farm.base_address ?? "Detroit"}, Detroit, MI`)).join("/")}`}>Open multi-stop directions ↗</a></div>}</div>}
+          {nutrition !== "all" && (
+            <div className="filter-bar">
+              <div className="filter-bar-main">
+                <span className="filter-bar-label">Objective</span>
+                <b>{nutritionObjectives.find(item => item.id === nutrition)?.label}</b>
+                <div className="chips">{nutritionProduce.length ? nutritionProduce.map(item => <span key={item}>{item}</span>) : <span>No current matches</span>}</div>
+              </div>
+              <div className="filter-bar-actions">
+                {routeFarms.length >= 3 && <button className="quiet" aria-expanded={routeOpen} onClick={() => setRouteOpen(value => !value)}>{routeOpen ? "Hide Root Route" : `Root Route (${routeFarms.length} stops)`}</button>}
+                <button className="quiet" onClick={() => setNutrition("all")}>Clear</button>
+              </div>
+              <p className="nutrition-disclaimer">These results use recognized nutrition sources for general food discovery and education—not diagnosis, treatment, or individualized medical advice. Nutrition needs vary by person.</p>
+              {routeFarms.length >= 3 && routeOpen && <div className="route-plan"><label>Prioritize<select value={routeSort} onChange={e => setRouteSort(e.target.value as "matches" | "closest")}><option value="matches">Most matching produce</option><option value="closest">Closest demo sequence</option></select></label><ol>{routeFarms.map((farm, index) => <li key={farm.id}><b>{index + 1}. {farm.name}</b><span>{farm.inventory_items.filter(item => item.quantity > 0 && matchesNutritionObjective(item.item_name, nutrition)).map(item => item.item_name).join(", ")}</span></li>)}</ol><a className="primary" target="_blank" rel="noreferrer" href={`https://www.google.com/maps/dir/${routeFarms.map(farm => encodeURIComponent(`${farm.selling_locations[0]?.address ?? farm.base_address ?? "Detroit"}, Detroit, MI`)).join("/")}`}>Open multi-stop directions ↗</a></div>}
+            </div>
+          )}
           <div className="grid">
             <div className="cards">
               {shown.map((f) => {
@@ -563,7 +598,9 @@ export default function Home() {
                     onClick={() => setOpen(f)}
                   >
                     <div className="row">
-                      <span className="tag">{f.test_tier ?? "LIVE"}</span>
+                      <span className="card-idline">
+                        {resultNumbers[f.id] && <span className="card-number" aria-label={`Map location ${resultNumbers[f.id]}`}>{resultNumbers[f.id]}</span>}
+                      </span>
                       <span className="status">
                         ●{" "}
                         {selling
@@ -604,9 +641,9 @@ export default function Home() {
                 );
               })}
             </div>
-            <DetroitMap farms={nutrition === "all" ? shown : shown.filter(farm => farm.inventory_items.some(item => item.quantity > 0 && ["available", "low_stock"].includes(item.stock_status) && matchesNutritionObjective(item.item_name, nutrition)))} onSelect={selectFarm} />
+            <DetroitMap farms={mappedFarms} numbers={resultNumbers} filtered={nutrition !== "all"} onSelect={selectFarm} />
           </div>
-          <AlertSignup />
+          <AlertSignup farms={farms.map(farm => ({ id: farm.id, name: farm.name }))} />
         </section>
       )}
       {tab === "community" && <CommunityBoard />}
@@ -732,7 +769,6 @@ export default function Home() {
               ×
             </button>
             <div className="detail-head">
-              <span className="tag">{open.test_tier}</span>
               <h2>{open.name}</h2>
               <p>{open.blurb}</p>
             </div>
@@ -781,6 +817,7 @@ export default function Home() {
                 </div>
               ))}
             </div>
+            <FarmAlertSignup key={open.id} farmName={open.name} />
             {open.volunteer_opportunities.map((v) => (
               <div className="block" key={v.id}>
                 <h3>Volunteer opportunity</h3>

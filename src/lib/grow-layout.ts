@@ -3,7 +3,12 @@
  */
 export const GRID = 12;
 export type CropLayer = { plotId: string; x: number; y: number; width: number; height: number; color: string };
-export type Layout = { unit: "ft" | "m"; cells: number[]; layers: CropLayer[] };
+/** Physical plot size in feet, recorded as metadata only. It is deliberately not
+ * mapped into the 12 x 12 planning geometry below. */
+export type PlotSize = { width_ft: number; length_ft: number };
+export const MAX_PLOT_WIDTH_FT = 500;
+export const MAX_PLOT_LENGTH_FT = 200;
+export type Layout = { unit: "ft" | "m"; cells: number[]; layers: CropLayer[]; plot_size?: PlotSize | null };
 export const colors = ["#386b50", "#ad653e", "#516c9c", "#93629c", "#94761e"];
 export function rectangle(width: number, height: number, x = 0, y = 0): number[] {
   return Array.from({ length: height }, (_, row) => Array.from({ length: width }, (_, col) => (row + y) * GRID + col + x)).flat();
@@ -16,4 +21,17 @@ export function overlaps(layout: Layout, layer: CropLayer): CropLayer[] {
   const cells = new Set(footprint(layer));
   return layout.layers.filter(other => other.plotId !== layer.plotId && footprint(other).some(cell => cells.has(cell)));
 }
-export function newLayout(): Layout { return { unit: "ft", cells: rectangle(4, 4), layers: [] }; }
+export function newLayout(): Layout { return { unit: "ft", cells: rectangle(12, 12), layers: [], plot_size: null }; }
+/** Finds the first free position for a crop while the visual planner is retired. */
+export function findSpot(layout: Layout, layer: CropLayer): CropLayer | null {
+  const candidates = [...layout.cells].sort((a, b) => a - b);
+  for (const cell of candidates) {
+    const candidate = { ...layer, x: cell % GRID, y: Math.floor(cell / GRID) };
+    if (fits(layout, candidate) && overlaps(layout, candidate).length === 0) return candidate;
+  }
+  for (const cell of candidates) {
+    const candidate = { ...layer, x: cell % GRID, y: Math.floor(cell / GRID) };
+    if (fits(layout, candidate)) return candidate;
+  }
+  return null;
+}

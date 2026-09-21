@@ -15,9 +15,9 @@ export type CropSize = { width: number; height: number; color: string };
  * A stable insert ID lets an interrupted response be retried without a duplicate.
  * Placement is a separate versioned layout save; the UI names both save boundaries.
  */
-export default function GrowCropForm({ db, farmId, crop, plotName, unit, colorIndex, onDirty, onSaved, onCancel }: {
+export default function GrowCropForm({ db, farmId, crop, plotName, colorIndex, onDirty, onSaved, onCancel }: {
   db: SupabaseClient; farmId: string; crop?: GrowCrop; plotName: string;
-  unit: "ft" | "m"; colorIndex: number;
+  colorIndex: number;
   onDirty: () => void;
   onSaved: (crop: GrowCrop, size?: CropSize) => void;
   onCancel: () => void;
@@ -55,7 +55,7 @@ export default function GrowCropForm({ db, farmId, crop, plotName, unit, colorIn
         return;
       }
       onSaved(result.data as GrowCrop, crop ? undefined : {
-        width: Number(fields.get("width")), height: Number(fields.get("height")), color: text("color"),
+        width: 1, height: 1, color: text("color") || colors[colorIndex % colors.length]!,
       });
     } catch {
       setMessage("The save response was interrupted. Retry here to recover this crop without creating another copy.");
@@ -65,7 +65,7 @@ export default function GrowCropForm({ db, farmId, crop, plotName, unit, colorIn
   return <form className="planner-crop-form" onSubmit={event => void submit(event)} onChange={onDirty}>
     <fieldset disabled={busy}>
       <h3>{crop ? `Edit ${crop.crop}` : `Add a crop to ${plotName}`}</h3>
-      <p>{crop ? "These dates and notes belong to this crop, wherever it appears in a layout." : "Enter what you’re growing and the space it needs. Next, choose its position on this plot."}</p>
+      <p>{crop ? "These dates and notes belong to this crop, wherever it appears in a layout." : "Enter what you’re growing. Visual plot planning is paused while it is redesigned, so this crop is simply added to the plot."}</p>
       <div className="planner-form-grid">
         <label>Crop type<input name="crop" defaultValue={crop?.crop} placeholder="For example, carrots" maxLength={120} required /></label>
         <label>Season year<input name="season" type="number" min="2000" max="2200" defaultValue={crop?.season ?? new Date().getFullYear()} required /></label>
@@ -73,13 +73,7 @@ export default function GrowCropForm({ db, farmId, crop, plotName, unit, colorIn
         <label>Expected harvest date<input name="planned_harvest_on" type="date" min={plantDate || undefined} defaultValue={crop?.planned_harvest_on ?? ""} /></label>
       </div>
       {!crop && <div className="planner-field-group">
-        <h4>Space for this crop</h4>
-        <p>Use {unit === "ft" ? "feet" : "meters"}, not number of plants. You can resize it later.</p>
-        <div className="planner-form-grid">
-          <label>Crop width ({unit})<input name="width" type="number" min="1" max="12" defaultValue="1" required /></label>
-          <label>Crop length ({unit})<input name="height" type="number" min="1" max="12" defaultValue="1" required /></label>
-          <label>Crop color<input name="color" type="color" defaultValue={colors[colorIndex % colors.length]} /></label>
-        </div>
+        <label>Crop color<input name="color" type="color" defaultValue={colors[colorIndex % colors.length]} /></label>
       </div>}
       <details className="planner-more">
         <summary>Optional label, soil and notes</summary>
@@ -88,9 +82,9 @@ export default function GrowCropForm({ db, farmId, crop, plotName, unit, colorIn
         <label>Growing notes<textarea name="notes" defaultValue={crop?.notes} maxLength={2000} /></label>
       </details>
       <p role="status">{message}</p>
-      {!crop && <p className="planner-caption">This saves the crop details first. After placing it, save the plot to keep its position.</p>}
+      {!crop && <p className="planner-caption">This saves the crop details first. Save the plot to keep it on this plot’s crop list.</p>}
       <div className="planner-actions">
-        <button className="primary">{busy ? "Saving…" : crop ? "Save crop details" : "Save crop & choose position"}</button>
+        <button className="primary">{busy ? "Saving…" : crop ? "Save crop details" : "Save crop & add to plot"}</button>
         <button type="button" className="quiet" onClick={onCancel}>Cancel</button>
       </div>
     </fieldset>

@@ -92,15 +92,15 @@ export default function GrowTools({ db, farmId, onDirty }: {
     finally { setBusy(false); }
   }
 
-  if (access !== "ready") return <section className="panel"><h2>Farmer Grow · Beta</h2>
+  if (access !== "ready") return <section className="panel"><h2>Farmers Grow · Beta</h2>
     <p>{access === "loading" ? "Loading your growing workspace…" : access === "denied" ? "Grow records are private to this farm’s members. Choose a farm you belong to, or ask the Owner to assign membership. Cross-farm selling access does not grant Grow access." : "Grow is unavailable. Check your connection or ask the Owner to check this farm’s setup."}</p>
     <button className="quiet" onClick={() => void load().catch(() => setAccess("unavailable"))}>Retry</button>
   </section>;
 
   return <div className="farmer-wrap">
-    <section className="panel grow-intro"><h2>Farmer Grow · Beta</h2><p>Plan your space, grow your crops, and keep track of harvests.</p>
+    <section className="panel grow-intro"><h2>Farmers Grow · Beta</h2><p>Plan your space, grow your crops, and keep track of harvests.</p>
       <details className="grow-privacy"><summary>Your farm data is private · Owner beta support access</summary>
-        <p>During beta, Nile, the product Owner, may have administrator access for testing and support. He will only inspect or change your real farm records when you ask him to look or fix something. Product testing otherwise uses designated test data. Temporary cross-farm Owner access will be disabled before production.</p>
+        <p>During beta, Nile and Quinn, the product Owners, may have administrator access for testing and support. They will only inspect or change your real farm records when you ask them to look or fix something. Product testing otherwise uses designated test data. Temporary cross-farm Owner access will be disabled before production.</p>
       </details>
     </section>
     {db && <GrowPlanner db={db} farmId={farmId} crops={crops} onDirty={setPlannerDirty} onCropSaved={cropSaved} onHarvest={openHarvest} />}
